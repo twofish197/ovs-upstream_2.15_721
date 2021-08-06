@@ -448,6 +448,13 @@ OvsCtUpdateEntry(OVS_CT_ENTRY* entry,
     return status;
 }
 
+static __inline VOID
+OvsHandleInvalidPacket(OvsFlowKey *key)
+{
+    UINT32 state = OVS_CS_F_INVALID;
+    OvsCtUpdateFlowKey(key, state, 0, 0, NULL);
+}
+
 /*
  *----------------------------------------------------------------------------
  * OvsCtEntryExpired
@@ -508,11 +515,14 @@ OvsDetectCtPacket(OvsForwardingContext *fwdCtx,
             || key->ipKey.nwProto == IPPROTO_ICMP) {
             return NDIS_STATUS_SUCCESS;
         }
-        return NDIS_STATUS_NOT_SUPPORTED;
+        OVS_LOG_ERROR("Not supported: nwProto %u", key->ipKey.nwProto);
+        break;
     case ETH_TYPE_IPV6:
-        return NDIS_STATUS_NOT_SUPPORTED;
+        OVS_LOG_ERROR("Not supported: Ipv6");
+        break;
     }
 
+    OvsHandleInvalidPacket(key);
     return NDIS_STATUS_NOT_SUPPORTED;
 }
 
@@ -1082,6 +1092,7 @@ OvsExecuteConntrackAction(OvsForwardingContext *fwdCtx,
                 }
                 if (strcmp("ftp", helper) != 0 && strcmp("tftp", helper) != 0) {
                     /* Only support FTP/TFTP */
+                    OvsHandleInvalidPacket(key);
                     return NDIS_STATUS_NOT_SUPPORTED;
                 }
                 break;

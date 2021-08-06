@@ -2006,7 +2006,7 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
     PNL_ATTR a;
     INT rem;
     UINT32 dstPortID;
-    OvsForwardingContext ovsFwdCtx;
+    OvsForwardingContext ovsFwdCtx = { 0 };
     PCWSTR dropReason = L"";
     NDIS_STATUS status;
     NDIS_STATUS status1;
@@ -2190,6 +2190,16 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
             PNET_BUFFER_LIST oldNbl = ovsFwdCtx.curNbl;
             status = OvsExecuteConntrackAction(&ovsFwdCtx, key,
                                                (const PNL_ATTR)a);
+
+              if (status == NDIS_STATUS_NOT_SUPPORTED) {
+                 /*
+                  * Treat unsupported packets as INVALID packets and let the
+                  * controller determine the workflow.
+                  */
+                 status = NDIS_STATUS_SUCCESS;
+                 break;
+             }
+
             if (status != NDIS_STATUS_SUCCESS) {
                 /* Pending NBLs are consumed by Defragmentation. */
                 if (status != NDIS_STATUS_PENDING) {
