@@ -2554,10 +2554,10 @@ OvsExtractFlow(const NET_BUFFER_LIST *packet,
 
 NDIS_STATUS
 OvsDumpFlow(const NET_BUFFER_LIST *packet,
-		UINT32 inPort,
-		OvsFlowKey *flow,
-		POVS_PACKET_HDR_INFO layers,
-		OvsIPv4TunnelKey *tunKey)
+           UINT32 inPort,
+           OvsFlowKey *flow,
+           POVS_PACKET_HDR_INFO layers,
+           OvsIPv4TunnelKey *tunKey)
 {
     struct Eth_Header *eth;
     UINT8 offset = 0;
@@ -2579,7 +2579,7 @@ OvsDumpFlow(const NET_BUFFER_LIST *packet,
 
     if (OvsPacketLenNBL(packet) < ETH_HEADER_LEN_DIX) {
         flow->l2.keyLen = OVS_WIN_TUNNEL_KEY_SIZE + 8 - flow->l2.offset;
-	OVS_LOG_INFO("len is not correct");
+        OVS_LOG_INFO("len is not correct");
         return NDIS_STATUS_SUCCESS;
     }
 
@@ -2636,25 +2636,25 @@ OvsDumpFlow(const NET_BUFFER_LIST *packet,
      * arithmetic is right).
      */
     if (ETH_TYPENOT8023(eth->dix.typeNBO)) {
-	    flow->l2.dlType = eth->dix.typeNBO;
-	    layers->l3Offset = ETH_HEADER_LEN_DIX + offset;
+          flow->l2.dlType = eth->dix.typeNBO;
+          layers->l3Offset = ETH_HEADER_LEN_DIX + offset;
     } else if (OvsPacketLenNBL(packet)  >= ETH_HEADER_LEN_802_3 &&
-		    eth->e802_3.llc.dsap == 0xaa &&
-		    eth->e802_3.llc.ssap == 0xaa &&
-		    eth->e802_3.llc.control == ETH_LLC_CONTROL_UFRAME &&
-		    eth->e802_3.snap.snapOrg[0] == 0x00 &&
-		    eth->e802_3.snap.snapOrg[1] == 0x00 &&
-		    eth->e802_3.snap.snapOrg[2] == 0x00) {
-	    flow->l2.dlType = eth->e802_3.snap.snapType.typeNBO;
-	    layers->l3Offset = ETH_HEADER_LEN_802_3 + offset;
+          eth->e802_3.llc.dsap == 0xaa &&
+          eth->e802_3.llc.ssap == 0xaa &&
+          eth->e802_3.llc.control == ETH_LLC_CONTROL_UFRAME &&
+          eth->e802_3.snap.snapOrg[0] == 0x00 &&
+          eth->e802_3.snap.snapOrg[1] == 0x00 &&
+          eth->e802_3.snap.snapOrg[2] == 0x00) {
+          flow->l2.dlType = eth->e802_3.snap.snapType.typeNBO;
+          layers->l3Offset = ETH_HEADER_LEN_802_3 + offset;
     } else {
         flow->l2.dlType = htons(OVSWIN_DL_TYPE_NONE);
         layers->l3Offset = ETH_HEADER_LEN_DIX + offset;
     }
 
     OVS_LOG_ERROR("flow inport %d dlType %u vlanTci %u vlanTpid %u",
-		    inPort,flow->l2.dlType,
-		    flow->l2.vlanKey.vlanTci, flow->l2.vlanKey.vlanTpid);
+inPort,flow->l2.dlType,
+flow->l2.vlanKey.vlanTci, flow->l2.vlanKey.vlanTpid);
 
     flow->l2.keyLen = OVS_WIN_TUNNEL_KEY_SIZE + OVS_L2_KEY_SIZE
                       - flow->l2.offset;
@@ -2664,8 +2664,8 @@ OvsDumpFlow(const NET_BUFFER_LIST *packet,
     if (flow->l2.dlType == htons(ETH_TYPE_IPV4)) {
         struct IPHdr ip_storage;
         const struct IPHdr *nh;
-	IpKey *ipKey = &flow->ipKey;
-	UINT32 ipAddr = 0;
+        IpKey *ipKey = &flow->ipKey;
+        UINT32 ipAddr = 0;
         flow->l2.keyLen += OVS_IP_KEY_SIZE;
         layers->isIPv4 = 1;
         nh = OvsGetIp(packet, layers->l3Offset, &ip_storage);
@@ -2676,18 +2676,18 @@ OvsDumpFlow(const NET_BUFFER_LIST *packet,
             ipKey->nwDst = nh->daddr;
             ipKey->nwProto = nh->protocol;
 
-	    ipAddr = ipKey->nwSrc;
-	    OVS_LOG_ERROR("Source: %d.%d.%d.%d",
-			    ipAddr & 0xff, (ipAddr >> 8) & 0xff,
-			    (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff);
+            ipAddr = ipKey->nwSrc;
+            OVS_LOG_ERROR("Source: %d.%d.%d.%d",
+                          ipAddr & 0xff, (ipAddr >> 8) & 0xff,
+                          (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff);
 
-	    ipAddr = ipKey->nwDst;
-	    OVS_LOG_ERROR("Destination: %d.%d.%d.%d",
-			    ipAddr & 0xff, (ipAddr >> 8) & 0xff,
-			    (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff);
-	    OVS_LOG_ERROR("ipid %u hex:%x", ntohs(nh->id),
-			    ntohs(nh->id));
-	    OVS_LOG_ERROR("Proto %u", ipKey->nwProto);
+            ipAddr = ipKey->nwDst;
+            OVS_LOG_ERROR("Destination: %d.%d.%d.%d",
+                         ipAddr & 0xff, (ipAddr >> 8) & 0xff,
+                         (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff);
+            OVS_LOG_ERROR("ipid %u hex:%x", ntohs(nh->id),
+                         ntohs(nh->id));
+            OVS_LOG_ERROR("Proto %u", ipKey->nwProto);
 
             ipKey->nwTos = nh->tos;
             if (nh->frag_off & htons(IP_MF | IP_OFFSET)) {
@@ -2704,16 +2704,16 @@ OvsDumpFlow(const NET_BUFFER_LIST *packet,
             ipKey->l4.tpDst = 0;
 
 
-	    if (!(nh->frag_off & htons(IP_OFFSET))) {
-		    if (ipKey->nwProto == SOCKET_IPPROTO_TCP) {
-			    //	    OvsParseTcp(packet, &(flow->ipv6Key.l4), layers);
-			    TCPHdr tcpStorage;
-			    const TCPHdr *tcp = OvsGetTcp(packet, layers->l4Offset, &tcpStorage);
-			    if (tcp) {
-				    OVS_LOG_INFO("the TCP seq %u checksum %u hex 0x%x", ntohl(tcp->seq),
-						    ntohs(tcp->check), ntohs(tcp->check));
-			    }
-		    } else if (ipKey->nwProto == SOCKET_IPPROTO_UDP) {
+            if (!(nh->frag_off & htons(IP_OFFSET))) {
+                 if (ipKey->nwProto == SOCKET_IPPROTO_TCP) {
+                 // OvsParseTcp(packet, &(flow->ipv6Key.l4), layers);
+                    TCPHdr tcpStorage;
+                    const TCPHdr *tcp = OvsGetTcp(packet, layers->l4Offset, &tcpStorage);
+                    if (tcp) {
+                        OVS_LOG_INFO("the TCP seq %u checksum %u hex 0x%x", ntohl(tcp->seq),
+                        ntohs(tcp->check), ntohs(tcp->check));
+                    }
+                } else if (ipKey->nwProto == SOCKET_IPPROTO_UDP) {
                 } else if (ipKey->nwProto == SOCKET_IPPROTO_SCTP) {
                 } else if (ipKey->nwProto == SOCKET_IPPROTO_ICMP) {
                     ICMPHdr icmpStorage;
@@ -2724,7 +2724,7 @@ OvsDumpFlow(const NET_BUFFER_LIST *packet,
                         ipKey->l4.tpSrc = htons(icmp->type);
                         ipKey->l4.tpDst = htons(icmp->code);
                         layers->l7Offset = layers->l4Offset + sizeof *icmp;
-			OVS_LOG_INFO("ICMP type %u code %u", ntohs(ipKey->l4.tpSrc), ntohs(ipKey->l4.tpDst));
+                        OVS_LOG_INFO("ICMP type %u code %u", ntohs(ipKey->l4.tpSrc), ntohs(ipKey->l4.tpDst));
                     }
                 }
             }
@@ -2735,12 +2735,12 @@ OvsDumpFlow(const NET_BUFFER_LIST *packet,
             return NDIS_STATUS_INVALID_PACKET;
         }
     } else if (flow->l2.dlType == htons(ETH_TYPE_IPV6)) {
-	OVS_LOG_ERROR("IPV6 packet");
+               OVS_LOG_ERROR("IPV6 packet");
     } else if (flow->l2.dlType == htons(ETH_TYPE_ARP)) {
         EtherArp arpStorage;
         const EtherArp *arp;
         ArpKey *arpKey = &flow->arpKey;
-	UINT32 ipAddr1 = 0;
+        UINT32 ipAddr1 = 0;
 
         ((UINT64 *)arpKey)[0] = 0;
         ((UINT64 *)arpKey)[1] = 0;
@@ -2763,32 +2763,32 @@ OvsDumpFlow(const NET_BUFFER_LIST *packet,
                 RtlCopyMemory(arpKey->arpTha, arp->arp_tha, ETH_ADDR_LENGTH);
             }
 
-	    OVS_LOG_INFO("ARP nwProto(opcode) %u", arpKey->nwProto);
+        OVS_LOG_INFO("ARP nwProto(opcode) %u", arpKey->nwProto);
 
-	    ipAddr1 = arpKey->nwSrc;
-	    OVS_LOG_INFO("ARP Source IP: %d.%d.%d.%d",
-			    ipAddr1 & 0xff, (ipAddr1 >> 8) & 0xff,
-			    (ipAddr1 >> 16) & 0xff, (ipAddr1 >> 24) & 0xff);
+        ipAddr1 = arpKey->nwSrc;
+        OVS_LOG_INFO("ARP Source IP: %d.%d.%d.%d",
+                    ipAddr1 & 0xff, (ipAddr1 >> 8) & 0xff,
+                    (ipAddr1 >> 16) & 0xff, (ipAddr1 >> 24) & 0xff);
 
-	    ipAddr1 = arpKey->nwDst;
-	    OVS_LOG_INFO("ARP Destination IP: %d.%d.%d.%d",
-			    ipAddr1 & 0xff, (ipAddr1 >> 8) & 0xff,
-			    (ipAddr1 >> 16) & 0xff, (ipAddr1 >> 24) & 0xff);
+        ipAddr1 = arpKey->nwDst;
+        OVS_LOG_INFO("ARP Destination IP: %d.%d.%d.%d",
+                     ipAddr1 & 0xff, (ipAddr1 >> 8) & 0xff,
+                     (ipAddr1 >> 16) & 0xff, (ipAddr1 >> 24) & 0xff);
 
-	    OVS_LOG_INFO("ARP src mac %x-%x-%x-%x-%x-%x",
-			    arpKey->arpSha[0],arpKey->arpSha[1],
-			    arpKey->arpSha[2],arpKey->arpSha[3],
-			    arpKey->arpSha[4],arpKey->arpSha[5]);
+        OVS_LOG_INFO("ARP src mac %x-%x-%x-%x-%x-%x",
+                     arpKey->arpSha[0],arpKey->arpSha[1],
+                     arpKey->arpSha[2],arpKey->arpSha[3],
+                     arpKey->arpSha[4],arpKey->arpSha[5]);
 
-	    OVS_LOG_INFO("ARP dst mac %x-%x-%x-%x-%x-%x",
-			    arpKey->arpTha[0], arpKey->arpTha[1],
-			    arpKey->arpTha[2], arpKey->arpTha[3],
-			    arpKey->arpTha[4], arpKey->arpTha[5]);
+         OVS_LOG_INFO("ARP dst mac %x-%x-%x-%x-%x-%x",
+                     arpKey->arpTha[0], arpKey->arpTha[1],
+                     arpKey->arpTha[2], arpKey->arpTha[3],
+                     arpKey->arpTha[4], arpKey->arpTha[5]);
         }
     } else if (OvsEthertypeIsMpls(flow->l2.dlType)) {
-	OVS_LOG_ERROR("mpls packet");
+         OVS_LOG_ERROR("mpls packet");
     } else {
-	OVS_LOG_ERROR("other packet");
+       OVS_LOG_ERROR("other packet");
     }
     OVS_LOG_INFO("flow l2 keylen %d\n", flow->l2.keyLen);
 
