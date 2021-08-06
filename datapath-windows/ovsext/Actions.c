@@ -2009,6 +2009,11 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
     OvsForwardingContext ovsFwdCtx;
     PCWSTR dropReason = L"";
     NDIS_STATUS status;
+    NDIS_STATUS status1;
+    OVS_PACKET_HDR_INFO layers_dump = { 0 };
+    OvsFlowKey key_dump = { 0 };
+
+
     PNDIS_SWITCH_FORWARDING_DETAIL_NET_BUFFER_LIST_INFO fwdDetail =
         NET_BUFFER_LIST_SWITCH_FORWARDING_DETAIL(curNbl);
 
@@ -2190,6 +2195,8 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
                 if (status != NDIS_STATUS_PENDING) {
                     OVS_LOG_ERROR("CT Action failed status = %lu", status);
                     dropReason = L"OVS-conntrack action failed";
+                    status1 = OvsDumpFlow(ovsFwdCtx.curNbl, portNo, &key_dump, &layers_dump, NULL);
+                    OVS_LOG_INFO("after OvsDumpFlow status %d", status1);
                 } else {
                     /* We added a new pending NBL to be consumed later.
                      * Report to the userspace that the action applied

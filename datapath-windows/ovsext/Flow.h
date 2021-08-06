@@ -57,6 +57,13 @@ NDIS_STATUS OvsExtractLayers(const NET_BUFFER_LIST *packet,
 NDIS_STATUS OvsExtractFlow(const NET_BUFFER_LIST *pkt, UINT32 inPort,
                            OvsFlowKey *flow, POVS_PACKET_HDR_INFO layers,
                            OvsIPv4TunnelKey *tunKey);
+NDIS_STATUS
+OvsDumpFlow(const NET_BUFFER_LIST *packet,
+		UINT32 inPort,
+		OvsFlowKey *flow,
+		POVS_PACKET_HDR_INFO layers,
+		OvsIPv4TunnelKey *tunKey);
+
 OvsFlow* OvsLookupFlow(OVS_DATAPATH *datapath, const OvsFlowKey *key,
                        UINT64 *hash, BOOLEAN hashValid);
 OvsFlow* OvsLookupFlowRecirc(OVS_DATAPATH *datapath,
