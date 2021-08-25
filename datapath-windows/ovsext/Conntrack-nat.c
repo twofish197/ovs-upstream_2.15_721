@@ -188,6 +188,7 @@ OvsNatPacket(OvsForwardingContext *ovsFwdCtx,
     BOOLEAN isSrcNat;
 
     if (!(natAction & (NAT_ACTION_SRC | NAT_ACTION_DST))) {
+        OVS_LOG_INFO("natAction %u, return", natAction);
         return;
     }
     isSrcNat = (((natAction & NAT_ACTION_SRC) && !reverse) ||

@@ -1464,6 +1464,8 @@ OvsUpdateTcpPorts(OvsForwardingContext *ovsFwdCtx,
         tcpHdr->dest = tcpAttr->tcp_dst;
         key->ipKey.l4.tpDst = tcpAttr->tcp_dst;
     }
+    OVS_LOG_INFO("get the TCP header 5 checksum  %u 0x%x",
+                  ntohs(tcpHdr->check), ntohs(tcpHdr->check));
 
     return NDIS_STATUS_SUCCESS;
 }
@@ -1575,6 +1577,11 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
             *checkField = ChecksumUpdate32(*checkField, oldAddr,
                                             newAddr);
         }
+
+        if (tcpHdr) {
+               OVS_LOG_INFO("get the TCP header 2 checksum 0x%x",
+                             ntohs(*checkField));
+        }
         if (ipHdr->check != 0) {
             ipHdr->check = ChecksumUpdate32(ipHdr->check, oldAddr,
                                             newAddr);
@@ -1590,6 +1597,29 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
         }
         *portField = newPort;
     }
+
+
+    if (ipHdr) {
+           UINT32 ipAddr = 0;
+           ipAddr = ipHdr->saddr;
+           OVS_LOG_INFO("Source: %d.%d.%d.%d",
+                           ipAddr & 0xff, (ipAddr >> 8) & 0xff,
+                           (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff);
+
+           ipAddr = ipHdr->daddr;
+           OVS_LOG_INFO("Destination: %d.%d.%d.%d",
+                           ipAddr & 0xff, (ipAddr >> 8) & 0xff,
+                           (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff);
+           OVS_LOG_INFO("ipid %u hex:0x%x", ntohs(ipHdr->id),
+                           ntohs(ipHdr->id));
+           OVS_LOG_INFO("Proto %u", ipHdr->protocol);
+
+           if (tcpHdr) {
+                   OVS_LOG_INFO("get the TCP header 21 checksum %u 0x%x",
+                                   ntohs(tcpHdr->check), ntohs(tcpHdr->check));
+           }
+    }
+
     return NDIS_STATUS_SUCCESS;
 }
 
@@ -1646,6 +1676,27 @@ OvsUpdateIPv4Header(OvsForwardingContext *ovsFwdCtx,
         if (tcpHdr) {
             tcpHdr->check = ChecksumUpdate32(tcpHdr->check, ipHdr->saddr,
                                              ipAttr->ipv4_src);
+         if (tcpHdr) {
+            UINT32 ipAddr = 0;
+            ipAddr = ipHdr->saddr;
+            OVS_LOG_INFO("old Source: %d.%d.%d.%d",
+                        ipAddr & 0xff, (ipAddr >> 8) & 0xff,
+                        (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff);
+            ipAddr = ipAttr->ipv4_src;
+            OVS_LOG_INFO("new Source: %d.%d.%d.%d",
+                        ipAddr & 0xff, (ipAddr >> 8) & 0xff,
+                        (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff);
+
+            ipAddr = ipHdr->daddr;
+            OVS_LOG_INFO("old Dst : %d.%d.%d.%d",
+                        ipAddr & 0xff, (ipAddr >> 8) & 0xff,
+                        (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff);
+            ipAddr = ipAttr->ipv4_dst;
+            OVS_LOG_INFO("new Dst: %d.%d.%d.%d",
+                        ipAddr & 0xff, (ipAddr >> 8) & 0xff,
+                        (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff);
+            OVS_LOG_INFO("get the TCP header 0 checksum 0x%x", ntohs(tcpHdr->check));
+         }
         } else if (udpHdr && udpHdr->check) {
             udpHdr->check = ChecksumUpdate32(udpHdr->check, ipHdr->saddr,
                                              ipAttr->ipv4_src);
@@ -1662,6 +1713,9 @@ OvsUpdateIPv4Header(OvsForwardingContext *ovsFwdCtx,
         if (tcpHdr) {
             tcpHdr->check = ChecksumUpdate32(tcpHdr->check, ipHdr->daddr,
                                              ipAttr->ipv4_dst);
+            if (tcpHdr) {
+               OVS_LOG_INFO("get the TCP header 3 checksum 0x%x", ntohs((tcpHdr->check)));
+            }
         } else if (udpHdr && udpHdr->check) {
             udpHdr->check = ChecksumUpdate32(udpHdr->check, ipHdr->daddr,
                                              ipAttr->ipv4_dst);
@@ -1679,6 +1733,9 @@ OvsUpdateIPv4Header(OvsForwardingContext *ovsFwdCtx,
         UINT16 newProto = (ipAttr->ipv4_proto << 16) & 0xff00;
         if (tcpHdr) {
             tcpHdr->check = ChecksumUpdate16(tcpHdr->check, oldProto, newProto);
+            if (tcpHdr) {
+                  OVS_LOG_INFO("get the TCP header 4 checksum 0x%x", ntohs((tcpHdr->check)));
+             }
         } else if (udpHdr && udpHdr->check) {
             udpHdr->check = ChecksumUpdate16(udpHdr->check, oldProto, newProto);
         }
@@ -2042,6 +2099,8 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
                 dropReason = L"OVS-adding destination port failed";
                 goto dropit;
             }
+           OVS_LOG_INFO("OVS-Completed since packet was copied to userspace, dstPortID %u",
+                        dstPortID);
             break;
 
         case OVS_ACTION_ATTR_PUSH_VLAN:
@@ -2191,6 +2250,8 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
             status = OvsExecuteConntrackAction(&ovsFwdCtx, key,
                                                (const PNL_ATTR)a);
 
+              status1 = OvsDumpFlow(ovsFwdCtx.curNbl, portNo, &key_dump, &layers_dump, NULL);
+
               if (status == NDIS_STATUS_NOT_SUPPORTED) {
                  /*
                   * Treat unsupported packets as INVALID packets and let the
@@ -2266,6 +2327,7 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
             }
             dropReason = L"OVS-Completed since packet was copied to "
                          L"userspace";
+           OVS_LOG_INFO("OVS-Completed since packet was copied to userspace");
             break;
         }
         case OVS_ACTION_ATTR_SET:
@@ -2309,6 +2371,7 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
         }
         default:
             status = NDIS_STATUS_NOT_SUPPORTED;
+            OVS_LOG_INFO("status == NDIS_STATUS_NOT_SUPPORTED");
             break;
         }
     }

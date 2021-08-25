@@ -1272,6 +1272,7 @@ FixSegmentHeader(PNET_BUFFER nb, UINT16 segmentSize, UINT32 seqNumber,
         dstTCP->check = CalculateChecksumNB(nb,
                                             csumLength,
                                             sizeof(*dstEth) + dstIP->ihl * 4);
+        OVS_LOG_INFO("get the TCP 11 dstTCP->check %u 0x%x", ntohs(dstTCP->check), ntohs(dstTCP->check));
         break;
     }
     case ETH_TYPE_IPV6_NBO:
@@ -1305,6 +1306,10 @@ FixSegmentHeader(PNET_BUFFER nb, UINT16 segmentSize, UINT32 seqNumber,
         dstTCP->check = CalculateChecksumNB(nb,
                                             csumLength,
                                             sizeof(*dstEth) + sizeof(IPv6Hdr));
+
+        OVS_LOG_INFO("get the TCP 11 dstTCP->check %u 0x%x", ntohs(dstTCP->check), ntohs(dstTCP->check));
+
+
         break;
     }
     default:

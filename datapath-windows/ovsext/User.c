@@ -419,6 +419,7 @@ NTSTATUS
 OvsExecuteDpIoctl(OvsPacketExecute *execute)
 {
     NTSTATUS                    status = STATUS_SUCCESS;
+    NTSTATUS                    status1 = STATUS_SUCCESS;
     NTSTATUS                    ndisStatus = STATUS_SUCCESS;
     LOCK_STATE_EX               lockState;
     PNET_BUFFER_LIST            pNbl = NULL;
@@ -430,6 +431,8 @@ OvsExecuteDpIoctl(OvsPacketExecute *execute)
     PNL_ATTR tunnelAttrs[__OVS_TUNNEL_KEY_ATTR_MAX];
     OvsFlowKey tempTunKey = {0};
     POVS_BUFFER_CONTEXT ctx;
+    OVS_PACKET_HDR_INFO layers_dump = { 0 };
+    OvsFlowKey key_dump = { 0 };
 
     if (execute->packetLen == 0) {
         status = STATUS_INVALID_PARAMETER;
@@ -488,6 +491,12 @@ OvsExecuteDpIoctl(OvsPacketExecute *execute)
         /* Invalid network header */
         goto dropit;
     }
+
+    OVS_LOG_INFO("after OvsExtractFlow portNo %d", execute->inPort);
+
+    status1 = OvsDumpFlow(pNbl, execute->inPort, &key_dump, &layers_dump, NULL);
+
+    OVS_LOG_INFO("after OvsDumpFlow status %d", status1);
 
     ctx = (POVS_BUFFER_CONTEXT)NET_BUFFER_LIST_CONTEXT_DATA_START(pNbl);
     ctx->mru = execute->mru;
@@ -911,6 +920,10 @@ OvsCompletePacketHeader(UINT8 *packet,
             tcpHdr->th_sum = IPPseudoChecksum((UINT32 *)&ipHdr->SourceAddress,
                                          (UINT32 *)&ipHdr->DestinationAddress,
                                          IPPROTO_TCP, hdrInfoOut->l4PayLoad);
+           if (tcpHdr) {
+                   OVS_LOG_INFO("get the TCP header 6 checksum %x", tcpHdr->th_sum);
+           }
+
         } else {
             PIPV6_HEADER ipv6Hdr = (PIPV6_HEADER)(packet +
                                                   hdrInfoIn->l3Offset);
