@@ -2090,6 +2090,10 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
     }
 
     NL_ATTR_FOR_EACH_UNSAFE (a, rem, actions, actionsLen) {
+        OVS_LOG_INFO(" one round action processing Action %d", NlAttrType(a));
+        status1 = OvsDumpFlow(ovsFwdCtx.curNbl, portNo, &key_dump, &layers_dump, NULL);
+        OVS_LOG_INFO(" after dump flow Action %d", NlAttrType(a));
+
         switch(NlAttrType(a)) {
         case OVS_ACTION_ATTR_OUTPUT:
             dstPortID = NlAttrGetU32(a);
@@ -2099,7 +2103,9 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
                 dropReason = L"OVS-adding destination port failed";
                 goto dropit;
             }
-           OVS_LOG_INFO("OVS-Completed since packet was copied to userspace, dstPortID %u",
+
+           status1 = OvsDumpFlow(ovsFwdCtx.curNbl, portNo, &key_dump, &layers_dump, NULL);
+           OVS_LOG_INFO("OutPut Action, status %d dstPortID %u", status,
                         dstPortID);
             break;
 
@@ -2313,6 +2319,8 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
             if (NlAttrIsLast(a, rem)) {
                 goto exit;
             }
+
+           OVS_LOG_INFO("action OVS_ACTION_ATTR_RECIRC");
             break;
         }
 
@@ -2348,6 +2356,8 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
                 dropReason = L"OVS-set action failed";
                 goto dropit;
             }
+
+           OVS_LOG_INFO("action OVS_ACTION_ATTR_SET");
             break;
         }
         case OVS_ACTION_ATTR_SAMPLE:
