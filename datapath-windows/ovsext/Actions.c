@@ -1545,7 +1545,7 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
                         ((BOOLEAN)csumInfo.Receive.UdpChecksumSucceeded ||
                          (BOOLEAN)csumInfo.Receive.UdpChecksumFailed);
         }
-        if (0) {
+        if (Tx && l4Offload) {
             *checkField = IPPseudoChecksum(&newAddr, &ipHdr->daddr,
                 tcpHdr ? IPPROTO_TCP : IPPROTO_UDP,
                 ntohs(ipHdr->tot_len) - ipHdr->ihl * 4);
@@ -1566,7 +1566,7 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
                          (BOOLEAN)csumInfo.Receive.UdpChecksumFailed);
         }
 
-       if (0) {
+       if (Tx && l4Offload) {
             *checkField = IPPseudoChecksum(&ipHdr->saddr, &newAddr,
                 tcpHdr ? IPPROTO_TCP : IPPROTO_UDP,
                 ntohs(ipHdr->tot_len) - ipHdr->ihl * 4);
@@ -1577,7 +1577,7 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
 
     if (*addrField != newAddr) {
         UINT32 oldAddr = *addrField;
-        if (checkField && *checkField != 0) {
+        if ((checkField && *checkField != 0) && (!l4Offload || !Tx)) {
             /* Recompute total checksum. */
             *checkField = ChecksumUpdate32(*checkField, oldAddr,
                                             newAddr);
@@ -1596,7 +1596,7 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
     }
 
     if (portField && *portField != newPort) {
-        if (checkField) {
+        if ((checkField) && (!l4Offload || !Tx)) {
             /* Recompute total checksum. */
             *checkField = ChecksumUpdate16(*checkField, *portField,
                                            newPort);
