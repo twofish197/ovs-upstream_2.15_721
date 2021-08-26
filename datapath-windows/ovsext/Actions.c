@@ -1495,6 +1495,7 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
     NDIS_TCP_IP_CHECKSUM_NET_BUFFER_LIST_INFO csumInfo;
     UINT16 old_port = 0;
     UINT16 csumLength = 0;
+    PNET_BUFFER curNb;
 
     ASSERT(layers->value != 0);
 
@@ -1552,7 +1553,8 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
                 tcpHdr ? IPPROTO_TCP : IPPROTO_UDP,
                 ntohs(ipHdr->tot_len) - ipHdr->ihl * 4);
 
-            *checkField = CalculateChecksumNB(ovsFwdCtx->curNbl, csumLength,
+            curNb = NET_BUFFER_LIST_FIRST_NB(ovsFwdCtx->curNbl);
+            *checkField = CalculateChecksumNB(curNb, csumLength,
                                               (UINT32)(layers->l4Offset));
         }
     } else {
@@ -1577,7 +1579,8 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
                 tcpHdr ? IPPROTO_TCP : IPPROTO_UDP,
                 ntohs(ipHdr->tot_len) - ipHdr->ihl * 4);
 
-            *checkField = CalculateChecksumNB(ovsFwdCtx->curNbl, csumLength,
+            curNb = NET_BUFFER_LIST_FIRST_NB(ovsFwdCtx->curNbl);
+            *checkField = CalculateChecksumNB(curNb, csumLength,
                                               (UINT32)(layers->l4Offset));
         }
     }
