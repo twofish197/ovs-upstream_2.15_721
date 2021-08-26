@@ -1572,7 +1572,7 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
 
     if (*addrField != newAddr) {
         UINT32 oldAddr = *addrField;
-        if (checkField && *checkField != 0 && !l4Offload) {
+        if (checkField && *checkField != 0) {
             /* Recompute total checksum. */
             *checkField = ChecksumUpdate32(*checkField, oldAddr,
                                             newAddr);
