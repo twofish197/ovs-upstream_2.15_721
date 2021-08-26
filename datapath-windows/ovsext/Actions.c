@@ -1547,7 +1547,7 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
                          (BOOLEAN)csumInfo.Receive.UdpChecksumFailed);
         }
         if (1) {
-            csumLength = ntohs(ipHdr->tot_len) - ipHdr->ihl * 4)
+            csumLength = ntohs(ipHdr->tot_len) - ipHdr->ihl * 4;
             *checkField = IPPseudoChecksum(&newAddr, &ipHdr->daddr,
                 tcpHdr ? IPPROTO_TCP : IPPROTO_UDP,
                 ntohs(ipHdr->tot_len) - ipHdr->ihl * 4);
@@ -1572,7 +1572,7 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
         }
 
        if (1) {
-            csumLength = ntohs(ipHdr->tot_len) - ipHdr->ihl * 4)
+            csumLength = ntohs(ipHdr->tot_len) - ipHdr->ihl * 4;
             *checkField = IPPseudoChecksum(&ipHdr->saddr, &newAddr,
                 tcpHdr ? IPPROTO_TCP : IPPROTO_UDP,
                 ntohs(ipHdr->tot_len) - ipHdr->ihl * 4);
