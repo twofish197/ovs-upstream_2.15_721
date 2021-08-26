@@ -1493,6 +1493,7 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
     UINT16 *checkField = NULL;
     BOOLEAN l4Offload = FALSE;
     NDIS_TCP_IP_CHECKSUM_NET_BUFFER_LIST_INFO csumInfo;
+    UINT16 old_port = 0;
 
     ASSERT(layers->value != 0);
 
@@ -1542,7 +1543,7 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
                         ((BOOLEAN)csumInfo.Receive.UdpChecksumSucceeded ||
                          (BOOLEAN)csumInfo.Receive.UdpChecksumFailed);
         }
-        if (l4Offload) {
+        if (!l4Offload) {
             *checkField = IPPseudoChecksum(&newAddr, &ipHdr->daddr,
                 tcpHdr ? IPPROTO_TCP : IPPROTO_UDP,
                 ntohs(ipHdr->tot_len) - ipHdr->ihl * 4);
@@ -1563,12 +1564,14 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
                          (BOOLEAN)csumInfo.Receive.UdpChecksumFailed);
         }
 
-       if (l4Offload) {
+       if (!l4Offload) {
             *checkField = IPPseudoChecksum(&ipHdr->saddr, &newAddr,
                 tcpHdr ? IPPROTO_TCP : IPPROTO_UDP,
                 ntohs(ipHdr->tot_len) - ipHdr->ihl * 4);
         }
     }
+
+    old_port = *portField;
 
     if (*addrField != newAddr) {
         UINT32 oldAddr = *addrField;
@@ -1586,11 +1589,12 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
             ipHdr->check = ChecksumUpdate32(ipHdr->check, oldAddr,
                                             newAddr);
         }
+
         *addrField = newAddr;
     }
 
     if (portField && *portField != newPort) {
-        if (checkField && !l4Offload) {
+        if (checkField) {
             /* Recompute total checksum. */
             *checkField = ChecksumUpdate16(*checkField, *portField,
                                            newPort);
@@ -1613,6 +1617,8 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
            OVS_LOG_INFO("ipid %u hex:0x%x", ntohs(ipHdr->id),
                            ntohs(ipHdr->id));
            OVS_LOG_INFO("Proto %u", ipHdr->protocol);
+
+           OVS_LOG_INFO("Port %u newPort %u", old_port, newPort);
 
            if (tcpHdr) {
                    OVS_LOG_INFO("get the TCP header 21 checksum %u 0x%x",
