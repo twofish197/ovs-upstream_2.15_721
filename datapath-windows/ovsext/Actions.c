@@ -1494,8 +1494,6 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
     BOOLEAN l4Offload = FALSE;
     NDIS_TCP_IP_CHECKSUM_NET_BUFFER_LIST_INFO csumInfo;
     UINT16 old_port = 0;
-    UINT16 csumLength = 0;
-    PNET_BUFFER curNb;
 
     ASSERT(layers->value != 0);
 
@@ -1547,15 +1545,10 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
                         ((BOOLEAN)csumInfo.Receive.UdpChecksumSucceeded ||
                          (BOOLEAN)csumInfo.Receive.UdpChecksumFailed);
         }
-        if (1) {
-            csumLength = ntohs(ipHdr->tot_len) - ipHdr->ihl * 4;
+        if (0) {
             *checkField = IPPseudoChecksum(&newAddr, &ipHdr->daddr,
                 tcpHdr ? IPPROTO_TCP : IPPROTO_UDP,
                 ntohs(ipHdr->tot_len) - ipHdr->ihl * 4);
-
-            curNb = NET_BUFFER_LIST_FIRST_NB(ovsFwdCtx->curNbl);
-            *checkField = CalculateChecksumNB(curNb, csumLength,
-                                              (UINT32)(layers->l4Offset));
         }
     } else {
         addrField = &ipHdr->daddr;
@@ -1573,15 +1566,10 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
                          (BOOLEAN)csumInfo.Receive.UdpChecksumFailed);
         }
 
-       if (1) {
-            csumLength = ntohs(ipHdr->tot_len) - ipHdr->ihl * 4;
+       if (0) {
             *checkField = IPPseudoChecksum(&ipHdr->saddr, &newAddr,
                 tcpHdr ? IPPROTO_TCP : IPPROTO_UDP,
                 ntohs(ipHdr->tot_len) - ipHdr->ihl * 4);
-
-            curNb = NET_BUFFER_LIST_FIRST_NB(ovsFwdCtx->curNbl);
-            *checkField = CalculateChecksumNB(curNb, csumLength,
-                                              (UINT32)(layers->l4Offset));
         }
     }
 
