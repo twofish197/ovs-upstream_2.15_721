@@ -1494,6 +1494,7 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
     BOOLEAN l4Offload = FALSE;
     NDIS_TCP_IP_CHECKSUM_NET_BUFFER_LIST_INFO csumInfo;
     UINT16 old_port = 0;
+    UINT16 csumLength = 0;
 
     ASSERT(layers->value != 0);
 
@@ -1519,6 +1520,7 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
 
     csumInfo.Value = NET_BUFFER_LIST_INFO(ovsFwdCtx->curNbl,
                                           TcpIpChecksumNetBufferListInfo);
+
     /*
      * Adjust the IP header inline as dictated by the action, and also update
      * the IP and the TCP checksum for the data modified.
@@ -1536,6 +1538,7 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
             l4Offload = isTx ? (BOOLEAN)csumInfo.Transmit.TcpChecksum :
                         ((BOOLEAN)csumInfo.Receive.TcpChecksumSucceeded ||
                          (BOOLEAN)csumInfo.Receive.TcpChecksumFailed);
+
         } else if (udpHdr) {
             portField = &udpHdr->source;
             checkField = &udpHdr->check;
@@ -1543,10 +1546,14 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
                         ((BOOLEAN)csumInfo.Receive.UdpChecksumSucceeded ||
                          (BOOLEAN)csumInfo.Receive.UdpChecksumFailed);
         }
-        if (!l4Offload) {
+        if (1) {
+            csumLength = ntohs(ipHdr->tot_len) - ipHdr->ihl * 4)
             *checkField = IPPseudoChecksum(&newAddr, &ipHdr->daddr,
                 tcpHdr ? IPPROTO_TCP : IPPROTO_UDP,
                 ntohs(ipHdr->tot_len) - ipHdr->ihl * 4);
+
+            *checkField = CalculateChecksumNB(ovsFwdCtx->curNbl, csumLength,
+                                              (UINT32)(layers->l4Offset));
         }
     } else {
         addrField = &ipHdr->daddr;
@@ -1564,10 +1571,14 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
                          (BOOLEAN)csumInfo.Receive.UdpChecksumFailed);
         }
 
-       if (!l4Offload) {
+       if (1) {
+            csumLength = ntohs(ipHdr->tot_len) - ipHdr->ihl * 4)
             *checkField = IPPseudoChecksum(&ipHdr->saddr, &newAddr,
                 tcpHdr ? IPPROTO_TCP : IPPROTO_UDP,
                 ntohs(ipHdr->tot_len) - ipHdr->ihl * 4);
+
+            *checkField = CalculateChecksumNB(ovsFwdCtx->curNbl, csumLength,
+                                              (UINT32)(layers->l4Offset));
         }
     }
 
