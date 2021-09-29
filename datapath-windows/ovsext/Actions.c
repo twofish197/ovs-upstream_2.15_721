@@ -770,7 +770,7 @@ OvsTunnelPortRx(OvsForwardingContext *ovsFwdCtx)
     case OVS_VPORT_TYPE_GENEVE:
         OVS_LOG_INFO("before decap geneve Packet");
         status1 = OvsDumpFlow(ovsFwdCtx->curNbl, ovsFwdCtx->srcVportNo, &key_dump,
-                       &layers_dump, &ovsFwdCtx->tunKey);
+                       &layers_dump, NULL);
         status = OvsDecapGeneve(ovsFwdCtx->switchContext, ovsFwdCtx->curNbl,
                                 &ovsFwdCtx->tunKey, &newNbl);
 
@@ -904,6 +904,7 @@ OvsOutputForwardingCtx(OvsForwardingContext *ovsFwdCtx)
 
         ctx = (POVS_BUFFER_CONTEXT)NET_BUFFER_LIST_CONTEXT_DATA_START(ovsFwdCtx->curNbl);
         if (ctx->mru != 0) {
+            OVS_LOG_INFO("before DoFragmentNbl nbl %p",ovsFwdCtx->curNbl);
             OvsDoFragmentNbl(ovsFwdCtx, ctx->mru);
         }
 
@@ -1540,6 +1541,30 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
         udpHdr = (UDPHdr *)(bufferStart + layers->l4Offset);
     }
 
+    if (ipHdr) {
+           OVS_LOG_INFO("before update address ");
+           UINT32 ipAddr = 0;
+           ipAddr = ipHdr->saddr;
+           OVS_LOG_INFO("Source: %d.%d.%d.%d",
+                           ipAddr & 0xff, (ipAddr >> 8) & 0xff,
+                           (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff);
+
+           ipAddr = ipHdr->daddr;
+           OVS_LOG_INFO("Destination: %d.%d.%d.%d",
+                           ipAddr & 0xff, (ipAddr >> 8) & 0xff,
+                           (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff);
+           OVS_LOG_INFO("ipid %u hex:0x%x", ntohs(ipHdr->id),
+                           ntohs(ipHdr->id));
+           OVS_LOG_INFO("Proto %u", ipHdr->protocol);
+
+           OVS_LOG_INFO("Port %u newPort %u", old_port, newPort);
+
+           if (tcpHdr) {
+                   OVS_LOG_INFO("get the TCP header 20 checksum %u 0x%x",
+                                   ntohs(tcpHdr->check), ntohs(tcpHdr->check));
+                   OVS_LOG_INFO("get the TCP header seq %u", ntohl(tcpHdr->seq));
+           }
+    }
     csumInfo.Value = NET_BUFFER_LIST_INFO(ovsFwdCtx->curNbl,
                                           TcpIpChecksumNetBufferListInfo);
 
@@ -1631,6 +1656,7 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
     if (ipHdr) {
            UINT32 ipAddr = 0;
            ipAddr = ipHdr->saddr;
+           OVS_LOG_INFO("after update address ");
            OVS_LOG_INFO("Source: %d.%d.%d.%d",
                            ipAddr & 0xff, (ipAddr >> 8) & 0xff,
                            (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff);
@@ -1648,6 +1674,7 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
            if (tcpHdr) {
                    OVS_LOG_INFO("get the TCP header 21 checksum %u 0x%x",
                                    ntohs(tcpHdr->check), ntohs(tcpHdr->check));
+                   OVS_LOG_INFO("get the TCP header seq %u", ntohl(tcpHdr->seq));
            }
     }
 
@@ -1835,6 +1862,7 @@ OvsExecuteSetAction(OvsForwardingContext *ovsFwdCtx,
     enum ovs_key_attr type = NlAttrType(a);
     NDIS_STATUS status = NDIS_STATUS_SUCCESS;
 
+    OVS_LOG_INFO("will handle type %d", type);
     switch (type) {
     case OVS_KEY_ATTR_ETHERNET:
         status = OvsUpdateEthHeader(ovsFwdCtx, key,

@@ -1376,6 +1376,7 @@ OvsFragmentNBL(PVOID ovsContext,
     UINT16 offset = 0, packetCounter = 0;
 
     OVS_LOG_TRACE("enter Fragment nbl %p", nbl);
+    OVS_LOG_INFO("enter Fragment nbl %p", nbl);
 
     srcCtx = (POVS_BUFFER_CONTEXT)NET_BUFFER_LIST_CONTEXT_DATA_START(nbl);
     if (srcCtx == NULL || srcCtx->magic != OVS_CTX_MAGIC) {

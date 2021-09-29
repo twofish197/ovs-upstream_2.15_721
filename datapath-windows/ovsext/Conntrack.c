@@ -727,8 +727,14 @@ OvsProcessConntrackEntry(OvsForwardingContext *fwdCtx,
     UINT32 state = 0;
     PNET_BUFFER_LIST curNbl = fwdCtx->curNbl;
     LOCK_STATE_EX lockStateTable;
+    NDIS_STATUS status1;
+    OVS_PACKET_HDR_INFO layers_dump = { 0 };
+    OvsFlowKey key_dump = { 0 };
 
     *entryCreated = FALSE;
+
+     OVS_LOG_INFO("start handle ct entry nbl %p", status1, fwdCtx->curNbl);
+     status1 = OvsDumpFlow(fwdCtx->curNbl, 0, &key_dump, &layers_dump, NULL);
 
     /* If an entry was found, update the state based on TCP flags */
     if (ctx->related) {
@@ -793,6 +799,9 @@ OvsProcessConntrackEntry(OvsForwardingContext *fwdCtx,
     } else {
         OvsCtUpdateFlowKey(key, state, zone, 0, NULL);
     }
+
+     status1 = OvsDumpFlow(fwdCtx->curNbl, 0, &key_dump, &layers_dump, NULL);
+     OVS_LOG_INFO("finish handle ct entry nbl %p", status1, fwdCtx->curNbl);
     return entry;
 }
 
@@ -1061,6 +1070,9 @@ OvsExecuteConntrackAction(OvsForwardingContext *fwdCtx,
     NAT_ACTION_INFO natActionInfo;
     OVS_PACKET_HDR_INFO *layers = &fwdCtx->layers;
     NDIS_STATUS status;
+    NDIS_STATUS status1;
+    OVS_PACKET_HDR_INFO layers_dump = { 0 };
+    OvsFlowKey key_dump = { 0 };
 
     memset(&natActionInfo, 0, sizeof natActionInfo);
     status = OvsDetectCtPacket(fwdCtx, key);
@@ -1173,10 +1185,17 @@ OvsExecuteConntrackAction(OvsForwardingContext *fwdCtx,
                 break;
         }
     }
+
+   status1 = OvsDumpFlow(fwdCtx->curNbl, 0, &key_dump, &layers_dump, NULL);
+   OVS_LOG_INFO(" before OvsCtExecute_ status1 %d nbl %p", status1, fwdCtx->curNbl);
+
     /* If newNbl is not allocated, use the current Nbl*/
     status = OvsCtExecute_(fwdCtx, key, layers,
                            commit, force, zone, mark, labels, helper, &natActionInfo,
                            postUpdateEvent);
+
+   OVS_LOG_INFO(" after OvsCtExecute_ dump flow nbl %p", fwdCtx->curNbl);
+   status1 = OvsDumpFlow(fwdCtx->curNbl, 0, &key_dump, &layers_dump, NULL);
     return status;
 }
 

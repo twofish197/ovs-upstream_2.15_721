@@ -2654,8 +2654,8 @@ OvsDumpFlow(const NET_BUFFER_LIST *packet,
     }
 
     OVS_LOG_ERROR("flow inport %d dlType %u vlanTci %u vlanTpid %u",
-inPort,flow->l2.dlType,
-flow->l2.vlanKey.vlanTci, flow->l2.vlanKey.vlanTpid);
+                   inPort,flow->l2.dlType,
+                   flow->l2.vlanKey.vlanTci, flow->l2.vlanKey.vlanTpid);
 
     flow->l2.keyLen = OVS_WIN_TUNNEL_KEY_SIZE + OVS_L2_KEY_SIZE
                       - flow->l2.offset;
