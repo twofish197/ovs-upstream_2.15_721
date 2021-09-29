@@ -1750,17 +1750,17 @@ OvsUpdateIPv4Header(OvsForwardingContext *ovsFwdCtx,
         if (tcpHdr) {
             tcpHdr->check = ChecksumUpdate32(tcpHdr->check, ipHdr->daddr,
                                              ipAttr->ipv4_dst);
-	    if (tcpHdr) {
+            if (tcpHdr) {
                 UINT32 ipAddr = 0;
                 ipAddr = ipHdr->saddr;
 
                 OVS_LOG_INFO("ipid %u hex:0x%x", ntohs(ipHdr->id),
-				    ntohs(ipHdr->id));
+                             ntohs(ipHdr->id));
                 OVS_LOG_INFO("Proto %u", ipHdr->protocol);
 
                 OVS_LOG_INFO("old Source: %d.%d.%d.%d",
                             ipAddr & 0xff, (ipAddr >> 8) & 0xff,
-	                    (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff);
+                            (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff);
                 ipAddr = ipAttr->ipv4_src;
                 OVS_LOG_INFO("new Source: %d.%d.%d.%d",
                               ipAddr & 0xff, (ipAddr >> 8) & 0xff,
@@ -1777,7 +1777,7 @@ OvsUpdateIPv4Header(OvsForwardingContext *ovsFwdCtx,
                 OVS_LOG_INFO("get the TCP header 0 checksum 0x%x", ntohs(tcpHdr->check));
                 OVS_LOG_INFO("get the TCP header seq %u", ntohl(tcpHdr->seq));
           }
-	} else if (udpHdr && udpHdr->check) {
+        } else if (udpHdr && udpHdr->check) {
             udpHdr->check = ChecksumUpdate32(udpHdr->check, ipHdr->daddr,
                                              ipAttr->ipv4_dst);
         }
