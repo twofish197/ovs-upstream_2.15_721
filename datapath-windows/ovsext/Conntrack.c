@@ -727,13 +727,13 @@ OvsProcessConntrackEntry(OvsForwardingContext *fwdCtx,
     UINT32 state = 0;
     PNET_BUFFER_LIST curNbl = fwdCtx->curNbl;
     LOCK_STATE_EX lockStateTable;
-    NDIS_STATUS status1;
+    NDIS_STATUS status1 = 0;
     OVS_PACKET_HDR_INFO layers_dump = { 0 };
     OvsFlowKey key_dump = { 0 };
 
     *entryCreated = FALSE;
 
-     OVS_LOG_INFO("start handle ct entry nbl %p", status1, fwdCtx->curNbl);
+     OVS_LOG_INFO("start handle ct entry nbl %p", fwdCtx->curNbl);
      status1 = OvsDumpFlow(fwdCtx->curNbl, 0, &key_dump, &layers_dump, NULL);
 
     /* If an entry was found, update the state based on TCP flags */
@@ -801,7 +801,7 @@ OvsProcessConntrackEntry(OvsForwardingContext *fwdCtx,
     }
 
      status1 = OvsDumpFlow(fwdCtx->curNbl, 0, &key_dump, &layers_dump, NULL);
-     OVS_LOG_INFO("finish handle ct entry nbl %p", status1, fwdCtx->curNbl);
+     OVS_LOG_INFO("finish handle ct entry status1 %d, nbl %p", status1, fwdCtx->curNbl);
     return entry;
 }
 
