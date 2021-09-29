@@ -451,6 +451,7 @@ OvsExecuteDpIoctl(OvsPacketExecute *execute)
                                     execute->packetLen);
     if (pNbl == NULL) {
         status = STATUS_NO_MEMORY;
+        OVS_LOG_INFO("OvsAllocateNBLFromBuffer call failed status %d pNbl is null", status);
         goto exit;
     }
 
@@ -459,6 +460,7 @@ OvsExecuteDpIoctl(OvsPacketExecute *execute)
 
     status = OvsGetFlowMetadata(&key, execute->keyAttrs);
     if (status != STATUS_SUCCESS) {
+        OVS_LOG_INFO("OvsGetFlowMetadata failed status %d pNbl %p", status, pNbl);
         goto dropit;
     }
 
@@ -489,14 +491,15 @@ OvsExecuteDpIoctl(OvsPacketExecute *execute)
 
     if (ndisStatus != NDIS_STATUS_SUCCESS) {
         /* Invalid network header */
+        OVS_LOG_INFO("Invalid network header ndiStatus %d pNbl %p", ndisStatus, pNbl);
         goto dropit;
     }
+    OVS_LOG_INFO("after OvsExtractFlow portNo %d pNbl %p", execute->inPort, pNbl);
 
-    OVS_LOG_INFO("after OvsExtractFlow portNo %d", execute->inPort);
+    status1 = OvsDumpFlow(pNbl, execute->inPort, &key_dump, &layers_dump,
+                         tempTunKey.tunKey.dst == 0 ? NULL : &tempTunKey.tunKey);
 
-    status1 = OvsDumpFlow(pNbl, execute->inPort, &key_dump, &layers_dump, NULL);
-
-    OVS_LOG_INFO("after OvsDumpFlow status %d", status1);
+    OVS_LOG_INFO("after OvsDumpFlow status %d pNbl %p", status1, pNbl);
 
     ctx = (POVS_BUFFER_CONTEXT)NET_BUFFER_LIST_CONTEXT_DATA_START(pNbl);
     ctx->mru = execute->mru;

@@ -265,6 +265,7 @@ NDIS_STATUS OvsDecapGeneve(POVS_SWITCH_CONTEXT switchContext,
 
     status = OvsExtractLayers(curNbl, &layers);
     if (status != NDIS_STATUS_SUCCESS) {
+        OVS_LOG_INFO("extract packet layer failed");
         return status;
     }
 
@@ -273,6 +274,7 @@ NDIS_STATUS OvsDecapGeneve(POVS_SWITCH_CONTEXT switchContext,
     tunnelSize = OvsGetGeneveTunHdrSizeFromLayers(&layers);
     packetLength = NET_BUFFER_DATA_LENGTH(curNb);
     if (packetLength <= tunnelSize) {
+        OVS_LOG_INFO("invalid packetlen for tunnel failed");
         return NDIS_STATUS_INVALID_LENGTH;
     }
 
@@ -284,6 +286,7 @@ NDIS_STATUS OvsDecapGeneve(POVS_SWITCH_CONTEXT switchContext,
                                 TRUE /*copy NBL info */);
 
     if (*newNbl == NULL) {
+        OVS_LOG_INFO("newNbl is null, failed");
         return NDIS_STATUS_RESOURCES;
     }
 
@@ -295,6 +298,7 @@ NDIS_STATUS OvsDecapGeneve(POVS_SWITCH_CONTEXT switchContext,
                   + NET_BUFFER_CURRENT_MDL_OFFSET(curNb);
     if (!bufferStart) {
         status = NDIS_STATUS_RESOURCES;
+        OVS_LOG_INFO("packet dropped due NDIS_STATUS_RESOURCES failed");
         goto dropNbl;
     }
 
@@ -311,6 +315,8 @@ NDIS_STATUS OvsDecapGeneve(POVS_SWITCH_CONTEXT switchContext,
     /* Validate if NIC has indicated checksum failure. */
     status = OvsValidateUDPChecksum(curNbl, udpHdr->check == 0);
     if (status != NDIS_STATUS_SUCCESS) {
+
+        OVS_LOG_INFO("packet dropped due NDIS_STATUS_RESOURCES failed");
         goto dropNbl;
     }
 
@@ -327,6 +333,7 @@ NDIS_STATUS OvsDecapGeneve(POVS_SWITCH_CONTEXT switchContext,
     geneveHdr = (GeneveHdr *)((PCHAR)udpHdr + sizeof *udpHdr);
     if (geneveHdr->protocol != ETH_P_TEB_NBO) {
         status = STATUS_NDIS_INVALID_PACKET;
+        OVS_LOG_INFO("Packet dropped due to STATUS_NDIS_INVALID_PACKET");
         goto dropNbl;
     }
     /* Update tunnelKey flags. */
@@ -338,6 +345,7 @@ NDIS_STATUS OvsDecapGeneve(POVS_SWITCH_CONTEXT switchContext,
     if (tunKey->tunOptLen > TUN_OPT_MAX_LEN ||
         packetLength < tunnelSize + tunKey->tunOptLen) {
         status = NDIS_STATUS_INVALID_LENGTH;
+        OVS_LOG_INFO("Packet dropped due to INVALID tunnel LENGTH.");
         goto dropNbl;
     }
     /* Clear out the receive flag for the inner packet. */
@@ -356,7 +364,7 @@ NDIS_STATUS OvsDecapGeneve(POVS_SWITCH_CONTEXT switchContext,
         NdisAdvanceNetBufferDataStart(curNb, tunKey->tunOptLen, FALSE, NULL);
         tunKey->flags |= OVS_TNL_F_GENEVE_OPT;
     }
-
+    OVS_LOG_INFO("Packet decapped successful");
     return NDIS_STATUS_SUCCESS;
 
 dropNbl:

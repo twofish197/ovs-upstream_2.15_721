@@ -1273,6 +1273,7 @@ FixSegmentHeader(PNET_BUFFER nb, UINT16 segmentSize, UINT32 seqNumber,
                                             csumLength,
                                             sizeof(*dstEth) + dstIP->ihl * 4);
         OVS_LOG_INFO("get the TCP 11 dstTCP->check %u 0x%x", ntohs(dstTCP->check), ntohs(dstTCP->check));
+        OVS_LOG_INFO("get the TCP dstTCP->seq %u", ntohl(dstTCP->seq));
         break;
     }
     case ETH_TYPE_IPV6_NBO:
@@ -1307,8 +1308,8 @@ FixSegmentHeader(PNET_BUFFER nb, UINT16 segmentSize, UINT32 seqNumber,
                                             csumLength,
                                             sizeof(*dstEth) + sizeof(IPv6Hdr));
 
-        OVS_LOG_INFO("get the TCP 11 dstTCP->check %u 0x%x", ntohs(dstTCP->check), ntohs(dstTCP->check));
-
+        OVS_LOG_INFO("get the TCP 12 dstTCP->check %u 0x%x", ntohs(dstTCP->check), ntohs(dstTCP->check));
+        OVS_LOG_INFO("get the TCP 1 dstTCP->seq %u", ntohs(dstTCP->seq));
 
         break;
     }
@@ -1373,6 +1374,8 @@ OvsFragmentNBL(PVOID ovsContext,
     UINT16 segmentSize;
     ULONG copiedSize;
     UINT16 offset = 0, packetCounter = 0;
+
+    OVS_LOG_TRACE("enter Fragment nbl %p", nbl);
 
     srcCtx = (POVS_BUFFER_CONTEXT)NET_BUFFER_LIST_CONTEXT_DATA_START(nbl);
     if (srcCtx == NULL || srcCtx->magic != OVS_CTX_MAGIC) {

@@ -2565,6 +2565,7 @@ OvsDumpFlow(const NET_BUFFER_LIST *packet,
 
     layers->value = 0;
 
+    OVS_LOG_INFO("nbl %p", (NET_BUFFER_LIST *)packet);
     if (tunKey) {
         ASSERT(tunKey->dst != 0);
         UINT8 optOffset = TunnelKeyGetOptionsOffset(tunKey);
@@ -2711,7 +2712,7 @@ flow->l2.vlanKey.vlanTci, flow->l2.vlanKey.vlanTpid);
                     const TCPHdr *tcp = OvsGetTcp(packet, layers->l4Offset, &tcpStorage);
                     if (tcp) {
                         OVS_LOG_INFO("the TCP seq %u checksum %u hex 0x%x", ntohl(tcp->seq),
-                        ntohs(tcp->check), ntohs(tcp->check));
+                         ntohs(tcp->check), ntohs(tcp->check));
                     }
                 } else if (ipKey->nwProto == SOCKET_IPPROTO_UDP) {
                 } else if (ipKey->nwProto == SOCKET_IPPROTO_SCTP) {

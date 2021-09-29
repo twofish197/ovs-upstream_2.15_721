@@ -733,6 +733,9 @@ OvsTunnelPortRx(OvsForwardingContext *ovsFwdCtx)
     PNET_BUFFER_LIST newNbl = NULL;
     POVS_VPORT_ENTRY tunnelRxVport = ovsFwdCtx->tunnelRxNic;
     PCWSTR dropReason = L"OVS-dropped due to new decap packet";
+    NDIS_STATUS status1;
+    OVS_PACKET_HDR_INFO layers_dump = { 0 };
+    OvsFlowKey key_dump = { 0 };
 
     if (OvsValidateIPChecksum(ovsFwdCtx->curNbl, &ovsFwdCtx->layers)
             != NDIS_STATUS_SUCCESS) {
@@ -750,6 +753,7 @@ OvsTunnelPortRx(OvsForwardingContext *ovsFwdCtx)
     case OVS_VPORT_TYPE_GRE:
         status = OvsDecapGre(ovsFwdCtx->switchContext, ovsFwdCtx->curNbl,
                              &ovsFwdCtx->tunKey, &newNbl);
+
         break;
     case OVS_VPORT_TYPE_VXLAN:
         status = OvsDecapVxlan(ovsFwdCtx->switchContext, ovsFwdCtx->curNbl,
@@ -764,8 +768,16 @@ OvsTunnelPortRx(OvsForwardingContext *ovsFwdCtx)
         }
         break;
     case OVS_VPORT_TYPE_GENEVE:
+        OVS_LOG_INFO("before decap geneve Packet");
+        status1 = OvsDumpFlow(ovsFwdCtx->curNbl, ovsFwdCtx->srcVportNo, &key_dump,
+                       &layers_dump, &ovsFwdCtx->tunKey);
         status = OvsDecapGeneve(ovsFwdCtx->switchContext, ovsFwdCtx->curNbl,
                                 &ovsFwdCtx->tunKey, &newNbl);
+
+        OVS_LOG_INFO("after decap geneve Packet");
+        status1 = OvsDumpFlow(ovsFwdCtx->curNbl, ovsFwdCtx->srcVportNo, &key_dump,
+                       &layers_dump, NULL);
+
         break;
     default:
         OVS_LOG_ERROR("Rx: Unhandled tunnel type: %d\n",
@@ -851,7 +863,7 @@ OvsOutputForwardingCtx(OvsForwardingContext *ovsFwdCtx)
             (ovsFwdCtx->destPortsSizeIn - ovsFwdCtx->destPortsSizeOut);
 
         ASSERT(ovsFwdCtx->destinationPorts != NULL);
-
+        OVS_LOG_INFO("ovsFwdCtx->destPortsSizeOut > 0, nbl %p",ovsFwdCtx->curNbl);
         /*
          * Create a copy of the packet in order to do encap on it later. Also,
          * don't copy the offload context since the encap'd packet has a
@@ -870,6 +882,7 @@ OvsOutputForwardingCtx(OvsForwardingContext *ovsFwdCtx)
                 status = NDIS_STATUS_RESOURCES;
                 ovsActionStats.noCopiedNbl++;
                 dropReason = L"Dropped due to failure to create NBL copy.";
+            OVS_LOG_INFO("Dropped due to failure to update destinations.");
                 goto dropit;
             }
             newCtx = (POVS_BUFFER_CONTEXT)
@@ -900,6 +913,7 @@ OvsOutputForwardingCtx(OvsForwardingContext *ovsFwdCtx)
         ovsFwdCtx->destPortsSizeOut = 0;
         ovsFwdCtx->curNbl = NULL;
         if (newNbl) {
+            OVS_LOG_INFO("Before OvsInitForwardingCtx nbl %p",ovsFwdCtx->curNbl);
             status = OvsInitForwardingCtx(ovsFwdCtx, ovsFwdCtx->switchContext,
                                           newNbl, ovsFwdCtx->srcVportNo, 0,
                                           NET_BUFFER_LIST_SWITCH_FORWARDING_DETAIL(newNbl),
@@ -907,8 +921,10 @@ OvsOutputForwardingCtx(OvsForwardingContext *ovsFwdCtx)
                                           &ovsFwdCtx->layers, FALSE);
             if (status != NDIS_STATUS_SUCCESS) {
                 dropReason = L"Dropped due to resouces.";
+                OVS_LOG_INFO("Dropped due to resouces.");
                 goto dropit;
             }
+            OVS_LOG_INFO("After OvsInitForwardingCtx nbl %p",ovsFwdCtx->curNbl);
         }
     }
 
@@ -1024,6 +1040,11 @@ OvsOutputBeforeSetAction(OvsForwardingContext *ovsFwdCtx)
     /* Send the original packet out and save the original source port number */
     UINT32 tempVportNo = ovsFwdCtx->srcVportNo;
     status = OvsOutputForwardingCtx(ovsFwdCtx);
+
+    OVS_LOG_INFO("after OvsOutputForwardingCtx status %d nbl %p", status, ovsFwdCtx->curNbl);
+
+
+
     ASSERT(ovsFwdCtx->curNbl == NULL);
     ASSERT(ovsFwdCtx->destPortsSizeOut == 0);
     ASSERT(ovsFwdCtx->tunnelRxNic == NULL);
@@ -1039,11 +1060,13 @@ OvsOutputBeforeSetAction(OvsForwardingContext *ovsFwdCtx)
     if (status != NDIS_STATUS_SUCCESS) {
         OvsCompleteNBL(ovsFwdCtx->switchContext, newNbl, TRUE);
     } else {
+        OVS_LOG_INFO("Before OvsInitForwardingCtx %p",ovsFwdCtx->curNbl);
         status = OvsInitForwardingCtx(ovsFwdCtx, ovsFwdCtx->switchContext,
                                       newNbl, tempVportNo, 0,
                                       NET_BUFFER_LIST_SWITCH_FORWARDING_DETAIL(newNbl),
                                       ovsFwdCtx->completionList,
                                       &ovsFwdCtx->layers, FALSE);
+       OVS_LOG_INFO("After OvsInitForwardingCtx %p",ovsFwdCtx->curNbl);
     }
 
     return status;
@@ -1687,6 +1710,11 @@ OvsUpdateIPv4Header(OvsForwardingContext *ovsFwdCtx,
          if (tcpHdr) {
             UINT32 ipAddr = 0;
             ipAddr = ipHdr->saddr;
+
+            OVS_LOG_INFO("ipid %u hex:0x%x", ntohs(ipHdr->id),
+                           ntohs(ipHdr->id));
+            OVS_LOG_INFO("Proto %u", ipHdr->protocol);
+
             OVS_LOG_INFO("old Source: %d.%d.%d.%d",
                         ipAddr & 0xff, (ipAddr >> 8) & 0xff,
                         (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff);
@@ -1704,6 +1732,7 @@ OvsUpdateIPv4Header(OvsForwardingContext *ovsFwdCtx,
                         ipAddr & 0xff, (ipAddr >> 8) & 0xff,
                         (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff);
             OVS_LOG_INFO("get the TCP header 0 checksum 0x%x", ntohs(tcpHdr->check));
+            OVS_LOG_INFO("get the TCP header seq %u", ntohl(tcpHdr->seq));
          }
         } else if (udpHdr && udpHdr->check) {
             udpHdr->check = ChecksumUpdate32(udpHdr->check, ipHdr->saddr,
@@ -1721,10 +1750,34 @@ OvsUpdateIPv4Header(OvsForwardingContext *ovsFwdCtx,
         if (tcpHdr) {
             tcpHdr->check = ChecksumUpdate32(tcpHdr->check, ipHdr->daddr,
                                              ipAttr->ipv4_dst);
-            if (tcpHdr) {
-               OVS_LOG_INFO("get the TCP header 3 checksum 0x%x", ntohs((tcpHdr->check)));
-            }
-        } else if (udpHdr && udpHdr->check) {
+	    if (tcpHdr) {
+                UINT32 ipAddr = 0;
+                ipAddr = ipHdr->saddr;
+
+                OVS_LOG_INFO("ipid %u hex:0x%x", ntohs(ipHdr->id),
+				    ntohs(ipHdr->id));
+                OVS_LOG_INFO("Proto %u", ipHdr->protocol);
+
+                OVS_LOG_INFO("old Source: %d.%d.%d.%d",
+                            ipAddr & 0xff, (ipAddr >> 8) & 0xff,
+	                    (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff);
+                ipAddr = ipAttr->ipv4_src;
+                OVS_LOG_INFO("new Source: %d.%d.%d.%d",
+                              ipAddr & 0xff, (ipAddr >> 8) & 0xff,
+                             (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff);
+
+                ipAddr = ipHdr->daddr;
+                OVS_LOG_INFO("old Dst : %d.%d.%d.%d",
+                              ipAddr & 0xff, (ipAddr >> 8) & 0xff,
+                             (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff);
+                ipAddr = ipAttr->ipv4_dst;
+                OVS_LOG_INFO("new Dst: %d.%d.%d.%d",
+                             ipAddr & 0xff, (ipAddr >> 8) & 0xff,
+                            (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff);
+                OVS_LOG_INFO("get the TCP header 0 checksum 0x%x", ntohs(tcpHdr->check));
+                OVS_LOG_INFO("get the TCP header seq %u", ntohl(tcpHdr->seq));
+          }
+	} else if (udpHdr && udpHdr->check) {
             udpHdr->check = ChecksumUpdate32(udpHdr->check, ipHdr->daddr,
                                              ipAttr->ipv4_dst);
         }
@@ -2098,9 +2151,9 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
     }
 
     NL_ATTR_FOR_EACH_UNSAFE (a, rem, actions, actionsLen) {
-        OVS_LOG_INFO(" one round action processing Action %d", NlAttrType(a));
+        OVS_LOG_INFO(" one round action processing Action %d, nbl %p", NlAttrType(a), ovsFwdCtx.curNbl);
         status1 = OvsDumpFlow(ovsFwdCtx.curNbl, portNo, &key_dump, &layers_dump, NULL);
-        OVS_LOG_INFO(" after dump flow Action %d", NlAttrType(a));
+        OVS_LOG_INFO(" after dump flow Action %d, nbl %p", NlAttrType(a), ovsFwdCtx.curNbl);
 
         switch(NlAttrType(a)) {
         case OVS_ACTION_ATTR_OUTPUT:
@@ -2109,12 +2162,14 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
                                               TRUE, TRUE);
             if (status != NDIS_STATUS_SUCCESS) {
                 dropReason = L"OVS-adding destination port failed";
+                OVS_LOG_INFO("OVS-adding destination port failed");
                 goto dropit;
             }
 
            status1 = OvsDumpFlow(ovsFwdCtx.curNbl, portNo, &key_dump, &layers_dump, NULL);
-           OVS_LOG_INFO("OutPut Action, status %d dstPortID %u", status,
-                        dstPortID);
+           OVS_LOG_INFO("OutPut Action, status %d dstPortID %u nbl %p", status,
+                        dstPortID, ovsFwdCtx.curNbl);
+
             break;
 
         case OVS_ACTION_ATTR_PUSH_VLAN:
@@ -2128,6 +2183,7 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
                 status = OvsOutputBeforeSetAction(&ovsFwdCtx);
                 if (status != NDIS_STATUS_SUCCESS) {
                     dropReason = L"OVS-adding destination failed";
+                    OVS_LOG_INFO("OVS-adding destination failed");
                     goto dropit;
                 }
             }
@@ -2261,6 +2317,7 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
             }
 
             PNET_BUFFER_LIST oldNbl = ovsFwdCtx.curNbl;
+            OVS_LOG_INFO("before OvsExecuteConntrackAction nbl %p", ovsFwdCtx.curNbl);
             status = OvsExecuteConntrackAction(&ovsFwdCtx, key,
                                                (const PNL_ATTR)a);
 
@@ -2281,7 +2338,7 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
                     OVS_LOG_ERROR("CT Action failed status = %lu", status);
                     dropReason = L"OVS-conntrack action failed";
                     status1 = OvsDumpFlow(ovsFwdCtx.curNbl, portNo, &key_dump, &layers_dump, NULL);
-                    OVS_LOG_INFO("after OvsDumpFlow status %d", status1);
+                    OVS_LOG_INFO("after OvsDumpFlow status %d nbl %p", status1, ovsFwdCtx.curNbl);
                 } else {
                     /* We added a new pending NBL to be consumed later.
                      * Report to the userspace that the action applied
@@ -2304,6 +2361,7 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
                                      &ovsFwdCtx.layers, FALSE);
                 key->ipKey.nwFrag = OVS_FRAG_TYPE_NONE;
             }
+            OVS_LOG_INFO("after OvsExecuteConntrackAction status %d nbl %p", status, ovsFwdCtx.curNbl);
             break;
         }
 
@@ -2328,7 +2386,7 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
                 goto exit;
             }
 
-           OVS_LOG_INFO("action OVS_ACTION_ATTR_RECIRC");
+           OVS_LOG_INFO("action OVS_ACTION_ATTR_RECIRC, nbl %p", ovsFwdCtx.curNbl);
             break;
         }
 
@@ -2343,7 +2401,7 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
             }
             dropReason = L"OVS-Completed since packet was copied to "
                          L"userspace";
-           OVS_LOG_INFO("OVS-Completed since packet was copied to userspace");
+            OVS_LOG_INFO("OVS-Completed since packet was copied to userspace");
             break;
         }
         case OVS_ACTION_ATTR_SET:
@@ -2353,6 +2411,7 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
                 status = OvsOutputBeforeSetAction(&ovsFwdCtx);
                 if (status != NDIS_STATUS_SUCCESS) {
                     dropReason = L"OVS-adding destination failed";
+                    OVS_LOG_INFO("OVS-adding destination failed");
                     goto dropit;
                 }
             }
@@ -2362,6 +2421,7 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
                                          ((const PNL_ATTR)a));
             if (status != NDIS_STATUS_SUCCESS) {
                 dropReason = L"OVS-set action failed";
+                OVS_LOG_INFO("OVS-set action failed");
                 goto dropit;
             }
 

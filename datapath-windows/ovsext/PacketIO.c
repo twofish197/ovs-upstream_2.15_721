@@ -336,11 +336,10 @@ OvsStartNBLIngress(POVS_SWITCH_CONTEXT switchContext,
                 goto dropit;
             }
 
-            OVS_LOG_INFO("after OvsExtractFlow portNo %d", portNo);
-
+            OVS_LOG_INFO("after OvsExtractFlow portNo %d nbl %p", portNo, curNbl);
             status1 = OvsDumpFlow(curNbl, vport->portNo, &key_dump, &layers_dump, NULL);
 
-           OVS_LOG_INFO("after OvsDumpFlow status %d", status1);
+           OVS_LOG_INFO("after OvsDumpFlow status %d nbl %p", status1, curNbl);
 
             ASSERT(KeGetCurrentIrql() == DISPATCH_LEVEL);
             OvsAcquireDatapathRead(datapath, &dpLockState, TRUE);
@@ -358,9 +357,8 @@ OvsStartNBLIngress(POVS_SWITCH_CONTEXT switchContext,
                                   portNo, SendFlags, &key, &hash, &layers,
                                   flow->actions, flow->actionsLen);
 
-               OVS_LOG_INFO("after OvsActionsExecute actions_len %d",
-                               flow->actionsLen);
-
+               OVS_LOG_INFO("after OvsActionsExecute actions_len %d nbl %p",
+                               flow->actionsLen, curNbl);
 
                 OvsReleaseDatapath(datapath, &dpLockState);
                 NdisReleaseRWLock(switchContext->dispatchLock, &lockState);
