@@ -769,9 +769,6 @@ OvsTunnelPortRx(OvsForwardingContext *ovsFwdCtx)
         }
         break;
     case OVS_VPORT_TYPE_GENEVE:
-        OVS_LOG_INFO("before decap geneve Packet");
-        status1 = OvsDumpFlow(ovsFwdCtx->curNbl, ovsFwdCtx->srcVportNo, &key_dump,
-                       &layers_dump, NULL);
         status = OvsDecapGeneve(ovsFwdCtx->switchContext, ovsFwdCtx->curNbl,
                                 &ovsFwdCtx->tunKey, &newNbl);
 
@@ -2220,8 +2217,8 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
 
     NL_ATTR_FOR_EACH_UNSAFE (a, rem, actions, actionsLen) {
         OVS_LOG_INFO(" one round action processing Action %d, nbl %p", NlAttrType(a), ovsFwdCtx.curNbl);
-        status1 = OvsDumpFlow(ovsFwdCtx.curNbl, portNo, &key_dump, &layers_dump, NULL);
-        OVS_LOG_INFO(" after dump flow Action %d, nbl %p", NlAttrType(a), ovsFwdCtx.curNbl);
+        //status1 = OvsDumpFlow(ovsFwdCtx.curNbl, portNo, &key_dump, &layers_dump, NULL);
+        //OVS_LOG_INFO(" after dump flow Action %d, nbl %p", NlAttrType(a), ovsFwdCtx.curNbl);
 
         switch(NlAttrType(a)) {
         case OVS_ACTION_ATTR_OUTPUT:
@@ -2234,7 +2231,6 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
                 goto dropit;
             }
 
-           status1 = OvsDumpFlow(ovsFwdCtx.curNbl, portNo, &key_dump, &layers_dump, NULL);
            OVS_LOG_INFO("OutPut Action, status %d dstPortID %u nbl %p", status,
                         dstPortID, ovsFwdCtx.curNbl);
 

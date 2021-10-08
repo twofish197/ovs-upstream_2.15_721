@@ -2565,7 +2565,6 @@ OvsDumpFlow(const NET_BUFFER_LIST *packet,
 
     layers->value = 0;
 
-    OVS_LOG_INFO("nbl %p", (NET_BUFFER_LIST *)packet);
     if (tunKey) {
         ASSERT(tunKey->dst != 0);
         UINT8 optOffset = TunnelKeyGetOptionsOffset(tunKey);
@@ -2753,7 +2752,7 @@ OvsDumpFlow(const NET_BUFFER_LIST *packet,
         EtherArp arpStorage;
         const EtherArp *arp;
         ArpKey *arpKey = &flow->arpKey;
-        UINT32 ipAddr1 = 0;
+        //UINT32 ipAddr1 = 0;
 
         ((UINT64 *)arpKey)[0] = 0;
         ((UINT64 *)arpKey)[1] = 0;
@@ -2775,7 +2774,7 @@ OvsDumpFlow(const NET_BUFFER_LIST *packet,
                 RtlCopyMemory(arpKey->arpSha, arp->arp_sha, ETH_ADDR_LENGTH);
                 RtlCopyMemory(arpKey->arpTha, arp->arp_tha, ETH_ADDR_LENGTH);
             }
-
+/*
         OVS_LOG_INFO("ARP nwProto(opcode) %u, nbl %p", arpKey->nwProto,
                     (NET_BUFFER_LIST *)packet);
 
@@ -2802,6 +2801,7 @@ OvsDumpFlow(const NET_BUFFER_LIST *packet,
                      arpKey->arpTha[2], arpKey->arpTha[3],
                      arpKey->arpTha[4], arpKey->arpTha[5],
                      (NET_BUFFER_LIST *)packet);
+ */
         }
     } else if (OvsEthertypeIsMpls(flow->l2.dlType)) {
          OVS_LOG_ERROR("mpls packet");

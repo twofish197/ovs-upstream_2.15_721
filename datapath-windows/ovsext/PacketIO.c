@@ -223,7 +223,6 @@ OvsStartNBLIngress(POVS_SWITCH_CONTEXT switchContext,
     UCHAR dispatch;
     LOCK_STATE_EX lockState, dpLockState;
     NDIS_STATUS status;
-    NDIS_STATUS status1;
     NDIS_STRING filterReason;
     LIST_ENTRY missedPackets;
     UINT32 num = 0;
@@ -246,9 +245,7 @@ OvsStartNBLIngress(POVS_SWITCH_CONTEXT switchContext,
         UINT32 portNo = 0;
         OVS_DATAPATH *datapath = &switchContext->datapath;
         OVS_PACKET_HDR_INFO layers = { 0 };
-        OVS_PACKET_HDR_INFO layers_dump = { 0 };
         OvsFlowKey key = { 0 };
-        OvsFlowKey key_dump = { 0 };
         UINT64 hash = 0;
         PNET_BUFFER curNb = NULL;
         POVS_BUFFER_CONTEXT ctx = NULL;
@@ -337,9 +334,6 @@ OvsStartNBLIngress(POVS_SWITCH_CONTEXT switchContext,
             }
 
             OVS_LOG_INFO("after OvsExtractFlow portNo %d nbl %p", portNo, curNbl);
-            status1 = OvsDumpFlow(curNbl, vport->portNo, &key_dump, &layers_dump, NULL);
-
-           OVS_LOG_INFO("after OvsDumpFlow status %d nbl %p", status1, curNbl);
 
             ASSERT(KeGetCurrentIrql() == DISPATCH_LEVEL);
             OvsAcquireDatapathRead(datapath, &dpLockState, TRUE);
