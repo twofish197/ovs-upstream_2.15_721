@@ -1529,6 +1529,8 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
     NDIS_TCP_IP_CHECKSUM_NET_BUFFER_LIST_INFO csumInfo;
     UINT16 old_port = 0;
 
+    TCPHdr tcpStorage;
+
     ASSERT(layers->value != 0);
 
     if (layers->isTcp || layers->isUdp) {
@@ -1551,28 +1553,48 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
         udpHdr = (UDPHdr *)(bufferStart + layers->l4Offset);
     }
 
+    {
+        const TCPHdr *tcp = OvsGetTcp(ovsFwdCtx->curNbl, layers->l4Offset, &tcpStorage);
+        if (tcp) {
+             OVS_LOG_INFO("TCP seq %u checksum %u hex 0x%x, nbl %p",
+                          ntohl(tcp->seq),
+                          ntohs(tcp->check), ntohs(tcp->check),
+                          ovsFwdCtx->curNbl);
+             OVS_LOG_INFO("TCP src_port %u dst_port %u, isTcp %u, isUdp %u, nbl %p",
+                         ntohs(tcp->source), ntohs(tcp->dest),
+                         layers->isTcp,  layers->isUdp,
+                          ovsFwdCtx->curNbl);
+        }
+     }
+    OVS_LOG_INFO("nbl %p ", ovsFwdCtx->curNbl);
     if (ipHdr) {
-           OVS_LOG_INFO("before update address ");
+           OVS_LOG_INFO("before update address ,nbl %p", ovsFwdCtx->curNbl);
            UINT32 ipAddr = 0;
            ipAddr = ipHdr->saddr;
-           OVS_LOG_INFO("Source: %d.%d.%d.%d",
+           OVS_LOG_INFO("Source: %d.%d.%d.%d, nbl %p",
                            ipAddr & 0xff, (ipAddr >> 8) & 0xff,
-                           (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff);
+                           (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff,
+                           ovsFwdCtx->curNbl);
 
            ipAddr = ipHdr->daddr;
-           OVS_LOG_INFO("Destination: %d.%d.%d.%d",
+           OVS_LOG_INFO("Destination: %d.%d.%d.%d, nbl %p",
                            ipAddr & 0xff, (ipAddr >> 8) & 0xff,
-                           (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff);
-           OVS_LOG_INFO("ipid %u hex:0x%x", ntohs(ipHdr->id),
-                           ntohs(ipHdr->id));
-           OVS_LOG_INFO("Proto %u", ipHdr->protocol);
+                           (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff,
+                           ovsFwdCtx->curNbl);
 
-           OVS_LOG_INFO("Port %u newPort %u", old_port, newPort);
+           OVS_LOG_INFO("ipid %u hex:0x%x, Proto %u, nbl %p", ntohs(ipHdr->id),
+                         ntohs(ipHdr->id), ipHdr->protocol,
+                         ovsFwdCtx->curNbl);
+           OVS_LOG_INFO("Port %u newPort %u, isTcp %u isUdp %u, nbl %p",
+                         ntohs(old_port), ntohs(newPort),
+                         layers->isTcp, layers->isUdp,
+                         ovsFwdCtx->curNbl);
 
            if (tcpHdr) {
-                   OVS_LOG_INFO("get the TCP header 20 checksum %u 0x%x",
-                                   ntohs(tcpHdr->check), ntohs(tcpHdr->check));
-                   OVS_LOG_INFO("get the TCP header seq %u", ntohl(tcpHdr->seq));
+                   OVS_LOG_INFO("the TCP 20 seq %u,checksum %u 0x%x, nbl %p",
+                                 ntohl(tcpHdr->seq),
+                                 ntohs(tcpHdr->check), ntohs(tcpHdr->check),
+                                 ovsFwdCtx->curNbl);
            }
     }
     csumInfo.Value = NET_BUFFER_LIST_INFO(ovsFwdCtx->curNbl,
@@ -1642,8 +1664,9 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
         }
 
         if (tcpHdr) {
-               OVS_LOG_INFO("get the TCP header 2 checksum 0x%x",
-                             ntohs(*checkField));
+               OVS_LOG_INFO("get the TCP header 2 checksum 0x%x, nbl %p",
+                             ntohs(*checkField),
+                             ovsFwdCtx->curNbl);
         }
         if (ipHdr->check != 0) {
             ipHdr->check = ChecksumUpdate32(ipHdr->check, oldAddr,
@@ -1666,25 +1689,31 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
     if (ipHdr) {
            UINT32 ipAddr = 0;
            ipAddr = ipHdr->saddr;
-           OVS_LOG_INFO("after update address ");
-           OVS_LOG_INFO("Source: %d.%d.%d.%d",
-                           ipAddr & 0xff, (ipAddr >> 8) & 0xff,
-                           (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff);
+           OVS_LOG_INFO("after update address, nbl %p", ovsFwdCtx->curNbl);
+           OVS_LOG_INFO("Source: %d.%d.%d.%d, nbl %p",
+                        ipAddr & 0xff, (ipAddr >> 8) & 0xff,
+                        (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff),
+                        ovsFwdCtx->curNbl);
 
            ipAddr = ipHdr->daddr;
-           OVS_LOG_INFO("Destination: %d.%d.%d.%d",
-                           ipAddr & 0xff, (ipAddr >> 8) & 0xff,
-                           (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff);
-           OVS_LOG_INFO("ipid %u hex:0x%x", ntohs(ipHdr->id),
-                           ntohs(ipHdr->id));
-           OVS_LOG_INFO("Proto %u", ipHdr->protocol);
+           OVS_LOG_INFO("Destination: %d.%d.%d.%d, nbl %p",
+                         ipAddr & 0xff, (ipAddr >> 8) & 0xff,
+                         (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff,
+                         ovsFwdCtx->curNbl);
 
-           OVS_LOG_INFO("Port %u newPort %u", old_port, newPort);
+           OVS_LOG_INFO("ipid %u hex:0x%x, Proto %u, nbl %p", ntohs(ipHdr->id),
+                         ntohs(ipHdr->id), ipHdr->protocol,
+                         ovsFwdCtx->curNbl);
 
+           OVS_LOG_INFO("Port %u newPort %u, isTcp %u isUdp %u, nbl %p",
+                         ntohs(old_port), ntohs(newPort),
+                         layers->isTcp, layers->isUdp,
+                         ovsFwdCtx->curNbl);
            if (tcpHdr) {
-                   OVS_LOG_INFO("get the TCP header 21 checksum %u 0x%x",
-                                   ntohs(tcpHdr->check), ntohs(tcpHdr->check));
-                   OVS_LOG_INFO("get the TCP header seq %u", ntohl(tcpHdr->seq));
+                   OVS_LOG_INFO("the TCP 21 seq %u,checksum %u 0x%x, nbl %p",
+                                 ntohl(tcpHdr->seq),
+                                 ntohs(tcpHdr->check), ntohs(tcpHdr->check),
+                                 ovsFwdCtx->curNbl);
            }
     }
 

@@ -1309,7 +1309,7 @@ FixSegmentHeader(PNET_BUFFER nb, UINT16 segmentSize, UINT32 seqNumber,
                                             sizeof(*dstEth) + sizeof(IPv6Hdr));
 
         OVS_LOG_INFO("get the TCP 12 dstTCP->check %u 0x%x", ntohs(dstTCP->check), ntohs(dstTCP->check));
-        OVS_LOG_INFO("get the TCP 1 dstTCP->seq %u", ntohs(dstTCP->seq));
+        OVS_LOG_INFO("get the TCP 1 dstTCP->seq %u", ntohl(dstTCP->seq));
 
         break;
     }

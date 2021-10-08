@@ -2589,15 +2589,17 @@ OvsDumpFlow(const NET_BUFFER_LIST *packet,
     RtlCopyMemory(flow->l2.dlSrc, eth->src, ETH_ADDR_LENGTH);
     RtlCopyMemory(flow->l2.dlDst, eth->dst, ETH_ADDR_LENGTH);
 
-    OVS_LOG_ERROR("flow src mac %x-%x-%x-%x-%x-%x",
-                 flow->l2.dlSrc[0],flow->l2.dlSrc[1],
-                 flow->l2.dlSrc[2],flow->l2.dlSrc[3],
-                 flow->l2.dlSrc[4],flow->l2.dlSrc[5]);
+    OVS_LOG_ERROR("flow src mac %x-%x-%x-%x-%x-%x, nbl %p",
+                   flow->l2.dlSrc[0],flow->l2.dlSrc[1],
+                   flow->l2.dlSrc[2],flow->l2.dlSrc[3],
+                   flow->l2.dlSrc[4],flow->l2.dlSrc[5],
+                   (NET_BUFFER_LIST *)packet);
 
-    OVS_LOG_ERROR("flow dst mac %x-%x-%x-%x-%x-%x",
-                 flow->l2.dlDst[0],flow->l2.dlDst[1],
-                 flow->l2.dlDst[2],flow->l2.dlDst[3],
-                 flow->l2.dlDst[4],flow->l2.dlDst[5]);
+    OVS_LOG_ERROR("flow dst mac %x-%x-%x-%x-%x-%x, nbl %p",
+                   flow->l2.dlDst[0],flow->l2.dlDst[1],
+                   flow->l2.dlDst[2],flow->l2.dlDst[3],
+                   flow->l2.dlDst[4],flow->l2.dlDst[5],
+                   (NET_BUFFER_LIST *)packet);
     /*
      * vlan_tci.
      */
@@ -2653,9 +2655,10 @@ OvsDumpFlow(const NET_BUFFER_LIST *packet,
         layers->l3Offset = ETH_HEADER_LEN_DIX + offset;
     }
 
-    OVS_LOG_ERROR("flow inport %d dlType %u vlanTci %u vlanTpid %u",
+    OVS_LOG_ERROR("flow inport %d dlType %u vlanTci %u vlanTpid %u, nbl %p",
                    inPort,flow->l2.dlType,
-                   flow->l2.vlanKey.vlanTci, flow->l2.vlanKey.vlanTpid);
+                   flow->l2.vlanKey.vlanTci, flow->l2.vlanKey.vlanTpid,
+                   (NET_BUFFER_LIST *)packet);
 
     flow->l2.keyLen = OVS_WIN_TUNNEL_KEY_SIZE + OVS_L2_KEY_SIZE
                       - flow->l2.offset;
@@ -2678,17 +2681,19 @@ OvsDumpFlow(const NET_BUFFER_LIST *packet,
             ipKey->nwProto = nh->protocol;
 
             ipAddr = ipKey->nwSrc;
-            OVS_LOG_ERROR("Source: %d.%d.%d.%d",
+            OVS_LOG_ERROR("Source: %d.%d.%d.%d, nbl %p",
                           ipAddr & 0xff, (ipAddr >> 8) & 0xff,
-                          (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff);
+                          (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff,
+                          (NET_BUFFER_LIST *)packet);
 
             ipAddr = ipKey->nwDst;
-            OVS_LOG_ERROR("Destination: %d.%d.%d.%d",
+            OVS_LOG_ERROR("Destination: %d.%d.%d.%d, nbl %p",
                          ipAddr & 0xff, (ipAddr >> 8) & 0xff,
                          (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff);
-            OVS_LOG_ERROR("ipid %u hex:%x", ntohs(nh->id),
-                         ntohs(nh->id));
-            OVS_LOG_ERROR("Proto %u", ipKey->nwProto);
+                         (NET_BUFFER_LIST *)packet);
+            OVS_LOG_ERROR("ipid %u hex:%x, Proto %u, nbl %p", ntohs(nh->id),
+                         ntohs(nh->id), ipKey->nwProto,
+                         (NET_BUFFER_LIST *)packet);
 
             ipKey->nwTos = nh->tos;
             if (nh->frag_off & htons(IP_MF | IP_OFFSET)) {
@@ -2711,8 +2716,14 @@ OvsDumpFlow(const NET_BUFFER_LIST *packet,
                     TCPHdr tcpStorage;
                     const TCPHdr *tcp = OvsGetTcp(packet, layers->l4Offset, &tcpStorage);
                     if (tcp) {
-                        OVS_LOG_INFO("the TCP seq %u checksum %u hex 0x%x", ntohl(tcp->seq),
-                         ntohs(tcp->check), ntohs(tcp->check));
+                        OVS_LOG_INFO("TCP seq %u checksum %u hex 0x%x, nbl %p",
+                                     ntohl(tcp->seq),
+                                     ntohs(tcp->check), ntohs(tcp->check),
+                                     (NET_BUFFER_LIST *)packet);
+                        OVS_LOG_INFO("TCP src_port %u dst_port %u, isTcp %u, isUdp %u, nbl %p",
+                                     ntohs(tcp->source), ntohs(tcp->dest),
+                                     layers->isTcp,  layers->isUdp,
+                                     (NET_BUFFER_LIST *)packet);
                     }
                 } else if (ipKey->nwProto == SOCKET_IPPROTO_UDP) {
                 } else if (ipKey->nwProto == SOCKET_IPPROTO_SCTP) {
@@ -2725,7 +2736,8 @@ OvsDumpFlow(const NET_BUFFER_LIST *packet,
                         ipKey->l4.tpSrc = htons(icmp->type);
                         ipKey->l4.tpDst = htons(icmp->code);
                         layers->l7Offset = layers->l4Offset + sizeof *icmp;
-                        OVS_LOG_INFO("ICMP type %u code %u", ntohs(ipKey->l4.tpSrc), ntohs(ipKey->l4.tpDst));
+                        OVS_LOG_INFO("ICMP type %u code %u, nbl %p", ntohs(ipKey->l4.tpSrc), ntohs(ipKey->l4.tpDst),
+                                     (NET_BUFFER_LIST *)packet);
                     }
                 }
             }
@@ -2764,34 +2776,41 @@ OvsDumpFlow(const NET_BUFFER_LIST *packet,
                 RtlCopyMemory(arpKey->arpTha, arp->arp_tha, ETH_ADDR_LENGTH);
             }
 
-        OVS_LOG_INFO("ARP nwProto(opcode) %u", arpKey->nwProto);
+        OVS_LOG_INFO("ARP nwProto(opcode) %u, nbl %p", arpKey->nwProto,
+                    (NET_BUFFER_LIST *)packet);
 
         ipAddr1 = arpKey->nwSrc;
-        OVS_LOG_INFO("ARP Source IP: %d.%d.%d.%d",
+        OVS_LOG_INFO("ARP Source IP: %d.%d.%d.%d, nbl %p",
                     ipAddr1 & 0xff, (ipAddr1 >> 8) & 0xff,
-                    (ipAddr1 >> 16) & 0xff, (ipAddr1 >> 24) & 0xff);
+                    (ipAddr1 >> 16) & 0xff, (ipAddr1 >> 24) & 0xff,
+                    (NET_BUFFER_LIST *)packet);
 
         ipAddr1 = arpKey->nwDst;
-        OVS_LOG_INFO("ARP Destination IP: %d.%d.%d.%d",
+        OVS_LOG_INFO("ARP Destination IP: %d.%d.%d.%d, nbl %p",
                      ipAddr1 & 0xff, (ipAddr1 >> 8) & 0xff,
-                     (ipAddr1 >> 16) & 0xff, (ipAddr1 >> 24) & 0xff);
+                     (ipAddr1 >> 16) & 0xff, (ipAddr1 >> 24) & 0xff,
+                     (NET_BUFFER_LIST *)packet);
 
-        OVS_LOG_INFO("ARP src mac %x-%x-%x-%x-%x-%x",
+        OVS_LOG_INFO("ARP src mac %x-%x-%x-%x-%x-%x, nbl %p",
                      arpKey->arpSha[0],arpKey->arpSha[1],
                      arpKey->arpSha[2],arpKey->arpSha[3],
-                     arpKey->arpSha[4],arpKey->arpSha[5]);
+                     arpKey->arpSha[4],arpKey->arpSha[5],
+                     (NET_BUFFER_LIST *)packet);
 
-         OVS_LOG_INFO("ARP dst mac %x-%x-%x-%x-%x-%x",
+         OVS_LOG_INFO("ARP dst mac %x-%x-%x-%x-%x-%x, nbl %p",
                      arpKey->arpTha[0], arpKey->arpTha[1],
                      arpKey->arpTha[2], arpKey->arpTha[3],
-                     arpKey->arpTha[4], arpKey->arpTha[5]);
+                     arpKey->arpTha[4], arpKey->arpTha[5],
+                     (NET_BUFFER_LIST *)packet);
         }
     } else if (OvsEthertypeIsMpls(flow->l2.dlType)) {
          OVS_LOG_ERROR("mpls packet");
     } else {
-       OVS_LOG_ERROR("other packet");
+       OVS_LOG_ERROR("other packet, nbl %p",
+                    (NET_BUFFER_LIST *)packet);
     }
-    OVS_LOG_INFO("flow l2 keylen %d\n", flow->l2.keyLen);
+    OVS_LOG_INFO("flow l2 keylen %d, nbl %p\n", flow->l2.keyLen,
+                (NET_BUFFER_LIST *)packet);
 
     return NDIS_STATUS_SUCCESS;
 }
