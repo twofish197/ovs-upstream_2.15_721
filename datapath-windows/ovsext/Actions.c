@@ -21,6 +21,7 @@
 #include "Debug.h"
 #include "Event.h"
 #include "Flow.h"
+#include "PacketParser.h"
 #include "Gre.h"
 #include "Jhash.h"
 #include "Mpls.h"
@@ -1692,7 +1693,7 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
            OVS_LOG_INFO("after update address, nbl %p", ovsFwdCtx->curNbl);
            OVS_LOG_INFO("Source: %d.%d.%d.%d, nbl %p",
                         ipAddr & 0xff, (ipAddr >> 8) & 0xff,
-                        (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff),
+                        (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff,
                         ovsFwdCtx->curNbl);
 
            ipAddr = ipHdr->daddr;

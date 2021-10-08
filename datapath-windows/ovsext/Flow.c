@@ -2689,7 +2689,7 @@ OvsDumpFlow(const NET_BUFFER_LIST *packet,
             ipAddr = ipKey->nwDst;
             OVS_LOG_ERROR("Destination: %d.%d.%d.%d, nbl %p",
                          ipAddr & 0xff, (ipAddr >> 8) & 0xff,
-                         (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff);
+                         (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff,
                          (NET_BUFFER_LIST *)packet);
             OVS_LOG_ERROR("ipid %u hex:%x, Proto %u, nbl %p", ntohs(nh->id),
                          ntohs(nh->id), ipKey->nwProto,
