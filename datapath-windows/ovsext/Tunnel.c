@@ -40,6 +40,7 @@
 #include "NetProto.h"
 #include "Flow.h"
 #include "Actions.h"
+#include "Debug.h"
 
 extern POVS_SWITCH_CONTEXT gOvsSwitchContext;
 
@@ -292,16 +293,21 @@ OvsInjectPacketThroughActions(PNET_BUFFER_LIST pNbl,
         if (status != NDIS_STATUS_SUCCESS) {
             goto unlockAndDrop;
         }
+        OVS_LOG_INFO("after OvsExtractFlow isTcp %u isUdp %u nbl %p",
+                     layers.isTcp, layers.isUdp, pNbl);
 
         flow = OvsLookupFlow(datapath, &key, &hash, FALSE);
         if (flow) {
             OvsFlowUsed(flow, pNbl, &layers);
             datapath->hits++;
 
+            OVS_LOG_INFO("OVS found flow and process the actions, nbl %p", pNbl);
             OvsActionsExecute(gOvsSwitchContext, &completionList, pNbl,
                               portNo, SendFlags, &key, &hash, &layers,
                               flow->actions, flow->actionsLen);
 
+            OVS_LOG_INFO("after OvsActionsExecute isTcp %u isUdp %u nbl %p",
+                        layers.isTcp, layers.isUdp, pNbl);
             OvsReleaseDatapath(datapath, &dpLockState);
         } else {
             POVS_PACKET_QUEUE_ELEM elem;

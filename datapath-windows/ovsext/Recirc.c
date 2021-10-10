@@ -321,6 +321,8 @@ OvsProcessDeferredActions(POVS_SWITCH_CONTEXT switchContext,
                                          &deferredAction->key, NULL,
                                          layers, deferredAction->actions,
                                          NlAttrGetSize(deferredAction->actions));
+           OVS_LOG_INFO("after OvsProcessDeferredActions layers isTcp %u, isUdp %u, nbl %p",
+                        layers->isTcp,  layers->isUdp, deferredAction->nbl);
         } else {
             status = OvsDoRecirc(switchContext,
                                  completionList,
@@ -328,6 +330,8 @@ OvsProcessDeferredActions(POVS_SWITCH_CONTEXT switchContext,
                                  &deferredAction->key,
                                  portNo,
                                  layers);
+           OVS_LOG_INFO("after OvsDoRecirc layers isTcp %u, isUdp %u, nbl %p",
+                        layers->isTcp,  layers->isUdp, deferredAction->nbl);
         }
     }
 

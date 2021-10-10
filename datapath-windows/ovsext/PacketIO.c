@@ -323,7 +323,8 @@ OvsStartNBLIngress(POVS_SWITCH_CONTEXT switchContext,
                 portNo = vport->portNo;
             }
 
-            OVS_LOG_INFO("after OvsFindVportByPortIdAndNicIndex portNo %d", portNo);
+            OVS_LOG_INFO("after OvsFindVportByPortIdAndNicIndex portNo %d nbl %p",
+                        portNo, curNbl);
             vport->stats.rxPackets++;
             vport->stats.rxBytes += NET_BUFFER_DATA_LENGTH(curNb);
 
@@ -333,7 +334,8 @@ OvsStartNBLIngress(POVS_SWITCH_CONTEXT switchContext,
                 goto dropit;
             }
 
-            OVS_LOG_INFO("after OvsExtractFlow portNo %d nbl %p", portNo, curNbl);
+            OVS_LOG_INFO("after OvsExtractFlow portNo %d isTcp %u isUdp %u, nbl %p",
+                          portNo, layers.isTcp, layers.isUdp, curNbl);
 
             ASSERT(KeGetCurrentIrql() == DISPATCH_LEVEL);
             OvsAcquireDatapathRead(datapath, &dpLockState, TRUE);
@@ -342,7 +344,7 @@ OvsStartNBLIngress(POVS_SWITCH_CONTEXT switchContext,
             if (flow) {
                 OvsFlowUsed(flow, curNbl, &layers);
                 datapath->hits++;
-               OVS_LOG_INFO("OVS found flow and process the actions."); 
+                OVS_LOG_INFO("OVS found flow and process the actions. nbl %p", curNbl);
 
                /* If successful, OvsActionsExecute() consumes the NBL.
                  * Otherwise, it adds it to the completionList. No need to

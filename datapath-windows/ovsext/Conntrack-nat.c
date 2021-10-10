@@ -187,7 +187,8 @@ OvsNatPacket(OvsForwardingContext *ovsFwdCtx,
     const OVS_CT_KEY *ctKey = reverse ? &entry->key : &entry->rev_key;
     BOOLEAN isSrcNat;
 
-    OVS_LOG_INFO("natAction %u", natAction);
+    OVS_LOG_INFO("natAction %u nbl %p", natAction,
+                 ovsFwdCtx->curNbl);
 
     if (!(natAction & (NAT_ACTION_SRC | NAT_ACTION_DST))) {
         OVS_LOG_INFO("natAction %u, return", natAction);

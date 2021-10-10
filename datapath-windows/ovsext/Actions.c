@@ -1042,8 +1042,6 @@ OvsOutputBeforeSetAction(OvsForwardingContext *ovsFwdCtx)
 
     OVS_LOG_INFO("after OvsOutputForwardingCtx status %d nbl %p", status, ovsFwdCtx->curNbl);
 
-
-
     ASSERT(ovsFwdCtx->curNbl == NULL);
     ASSERT(ovsFwdCtx->destPortsSizeOut == 0);
     ASSERT(ovsFwdCtx->tunnelRxNic == NULL);
@@ -1527,7 +1525,6 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
     NDIS_TCP_IP_CHECKSUM_NET_BUFFER_LIST_INFO csumInfo;
     UINT16 old_port = 0;
 
-    TCPHdr tcpStorage;
 
     ASSERT(layers->value != 0);
 
@@ -1551,19 +1548,28 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
         udpHdr = (UDPHdr *)(bufferStart + layers->l4Offset);
     }
 
-    {
-        const TCPHdr *tcp = OvsGetTcp(ovsFwdCtx->curNbl, layers->l4Offset, &tcpStorage);
-        if (tcp) {
-             OVS_LOG_INFO("TCP seq %u checksum %u hex 0x%x, nbl %p",
-                          ntohl(tcp->seq),
-                          ntohs(tcp->check), ntohs(tcp->check),
-                          ovsFwdCtx->curNbl);
-             OVS_LOG_INFO("TCP src_port %u dst_port %u, isTcp %u, isUdp %u, nbl %p",
-                         ntohs(tcp->source), ntohs(tcp->dest),
-                         layers->isTcp,  layers->isUdp,
-                          ovsFwdCtx->curNbl);
-        }
-     }
+    if (ipHdr) {
+          if (ipHdr->nwProto == SOCKET_IPPROTO_TCP) {
+              TCPHdr tcpStorage;
+              const TCPHdr *tcp = OvsGetTcp(ovsFwdCtx->curNbl, layers->l4Offset, &tcpStorage);
+              if (tcp) {
+                 OVS_LOG_INFO("TCP seq %u checksum %u hex 0x%x, nbl %p",
+                             ntohl(tcp->seq),
+                             ntohs(tcp->check), ntohs(tcp->check),
+                             ovsFwdCtx->curNbl);
+                OVS_LOG_INFO("TCP src_port %u dst_port %u, isTcp %u, isUdp %u, nbl %p",
+                             ntohs(tcp->source), ntohs(tcp->dest),
+                             layers->isTcp,  layers->isUdp,
+                             ovsFwdCtx->curNbl);
+             }
+         } else if (ipHdr->nwProto == SOCKET_IPPROTO_UDP) {
+              UDPHdr udpStorage;
+              const UDPHdr *udp = OvsGetUdp(ovsFwdCtx->curNbl, layers->l4Offset, &udpStorage);
+              if (udp) {
+                 OVS_LOG_INFO("udp packet, nbl %p", ovsFwdCtx->curNbl);
+              }
+         }
+    }
     OVS_LOG_INFO("nbl %p ", ovsFwdCtx->curNbl);
     if (ipHdr) {
            OVS_LOG_INFO("before update address ,nbl %p", ovsFwdCtx->curNbl);
@@ -2216,7 +2222,8 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
     }
 
     NL_ATTR_FOR_EACH_UNSAFE (a, rem, actions, actionsLen) {
-        OVS_LOG_INFO(" one round action processing Action %d, nbl %p", NlAttrType(a), ovsFwdCtx.curNbl);
+        OVS_LOG_INFO("one round Action %d, layers isTcp %u, isUdp %u, nbl %p",
+                      ovsFwdCtx.layers.isTcp, ovsFwdCtx.layers.isUdp, NlAttrType(a), ovsFwdCtx.curNbl);
         //status1 = OvsDumpFlow(ovsFwdCtx.curNbl, portNo, &key_dump, &layers_dump, NULL);
         //OVS_LOG_INFO(" after dump flow Action %d, nbl %p", NlAttrType(a), ovsFwdCtx.curNbl);
 
@@ -2375,6 +2382,9 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
                 || ovsFwdCtx.tunnelTxNic != NULL
                 || ovsFwdCtx.tunnelRxNic != NULL) {
                 status = OvsOutputBeforeSetAction(&ovsFwdCtx);
+               OVS_LOG_INFO("after OvsOutputBeforeSetAction layers.isTcp %u is Udp %u,nbl %p", 
+                            ovsFwdCtx.layers.isTcp,  ovsFwdCtx.layers.isUdp,
+                            ovsFwdCtx.curNbl);
                 if (status != NDIS_STATUS_SUCCESS) {
                     dropReason = L"OVS-adding destination failed";
                     goto dropit;
@@ -2385,10 +2395,10 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
             OVS_LOG_INFO("before OvsExecuteConntrackAction nbl %p", ovsFwdCtx.curNbl);
             status = OvsExecuteConntrackAction(&ovsFwdCtx, key,
                                                (const PNL_ATTR)a);
+            OVS_LOG_INFO("after OvsExecuteConntrackAction status %d layers isTcp %u, isUdp %u, nbl %p",
+                         status, ovsFwdCtx.layers.isTcp,  ovsFwdCtx.layers.isUdp, ovsFwdCtx.curNbl);
 
-              status1 = OvsDumpFlow(ovsFwdCtx.curNbl, portNo, &key_dump, &layers_dump, NULL);
-
-              if (status == NDIS_STATUS_NOT_SUPPORTED) {
+             if (status == NDIS_STATUS_NOT_SUPPORTED) {
                  /*
                   * Treat unsupported packets as INVALID packets and let the
                   * controller determine the workflow.
@@ -2426,7 +2436,9 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
                                      &ovsFwdCtx.layers, FALSE);
                 key->ipKey.nwFrag = OVS_FRAG_TYPE_NONE;
             }
-            OVS_LOG_INFO("after OvsExecuteConntrackAction status %d nbl %p", status, ovsFwdCtx.curNbl);
+
+            OVS_LOG_INFO("after action CT processing layers isTcp %u, isUdp %u, nbl %p",
+                          ovsFwdCtx.layers.isTcp,  ovsFwdCtx.layers.isUdp, ovsFwdCtx.curNbl);
             break;
         }
 
@@ -2452,6 +2464,8 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
             }
 
            OVS_LOG_INFO("action OVS_ACTION_ATTR_RECIRC, nbl %p", ovsFwdCtx.curNbl);
+           OVS_LOG_INFO("layers isTcp %u, isUdp %u, nbl %p",
+                         ovsFwdCtx.layers.isTcp,  ovsFwdCtx.layers.isUdp, ovsFwdCtx.curNbl);
             break;
         }
 
@@ -2490,7 +2504,7 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
                 goto dropit;
             }
 
-           OVS_LOG_INFO("action OVS_ACTION_ATTR_SET");
+           OVS_LOG_INFO("action OVS_ACTION_ATTR_SET nbl %p", ovsFwdCtx.curNbl);
             break;
         }
         case OVS_ACTION_ATTR_SAMPLE:
@@ -2570,9 +2584,12 @@ OvsActionsExecute(POVS_SWITCH_CONTEXT switchContext,
                                  portNo, sendFlags, key, hash, layers,
                                  actions, actionsLen);
 
+    OVS_LOG_INFO("after OvsDoExecuteActions layers isTcp %u, isUdp %u, nbl %p",
+                  layers->isTcp,  layers->isUdp, curNbl);
     if (status == STATUS_SUCCESS) {
         status = OvsProcessDeferredActions(switchContext, completionList,
                                            portNo, sendFlags, layers);
+
     }
 
     return status;
