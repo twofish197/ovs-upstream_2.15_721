@@ -15,10 +15,14 @@
  */
 
 #include "Recirc.h"
-#include "Debug.h"
 #include "Flow.h"
 #include "Jhash.h"
 
+#ifdef OVS_DBG_MOD
+#undef OVS_DBG_MOD
+#endif
+#define OVS_DBG_MOD OVS_DBG_RECIRC
+#include "Debug.h"
 /*
  * --------------------------------------------------------------------------
  * '_OVS_DEFERRED_ACTION_QUEUE' structure is responsible for keeping track of
