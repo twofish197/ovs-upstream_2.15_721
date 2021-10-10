@@ -1549,7 +1549,7 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
     }
 
     if (ipHdr) {
-          if (ipHdr->nwProto == SOCKET_IPPROTO_TCP) {
+          if (ipHdr->protocol == SOCKET_IPPROTO_TCP) {
               TCPHdr tcpStorage;
               const TCPHdr *tcp = OvsGetTcp(ovsFwdCtx->curNbl, layers->l4Offset, &tcpStorage);
               if (tcp) {
@@ -1562,7 +1562,7 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
                              layers->isTcp,  layers->isUdp,
                              ovsFwdCtx->curNbl);
              }
-         } else if (ipHdr->nwProto == SOCKET_IPPROTO_UDP) {
+         } else if (ipHdr->protocol == SOCKET_IPPROTO_UDP) {
               UDPHdr udpStorage;
               const UDPHdr *udp = OvsGetUdp(ovsFwdCtx->curNbl, layers->l4Offset, &udpStorage);
               if (udp) {

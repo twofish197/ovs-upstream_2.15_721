@@ -15,6 +15,7 @@
  */
 
 #include "Recirc.h"
+#include "Debug.h"
 #include "Flow.h"
 #include "Jhash.h"
 
