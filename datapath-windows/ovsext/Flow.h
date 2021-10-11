@@ -64,6 +64,13 @@ OvsDumpFlow(const NET_BUFFER_LIST *packet,
             POVS_PACKET_HDR_INFO layers,
             OvsIPv4TunnelKey *tunKey);
 
+NDIS_STATUS
+OvsDumpFlow_ip(const NET_BUFFER_LIST *packet,
+           UINT32 inPort,
+           OvsFlowKey *flow,
+           POVS_PACKET_HDR_INFO layers,
+           OvsIPv4TunnelKey *tunKey);
+
 OvsFlow* OvsLookupFlow(OVS_DATAPATH *datapath, const OvsFlowKey *key,
                        UINT64 *hash, BOOLEAN hashValid);
 OvsFlow* OvsLookupFlowRecirc(OVS_DATAPATH *datapath,

@@ -2816,6 +2816,206 @@ OvsDumpFlow(const NET_BUFFER_LIST *packet,
     return NDIS_STATUS_SUCCESS;
 }
 
+NDIS_STATUS
+OvsDumpFlow_ip(const NET_BUFFER_LIST *packet,
+           UINT32 inPort,
+           OvsFlowKey *flow,
+           POVS_PACKET_HDR_INFO layers,
+           OvsIPv4TunnelKey *tunKey)
+{
+    struct Eth_Header *eth;
+    UINT8 offset = 0;
+    PVOID vlanTagValue;
+
+    layers->value = 0;
+
+    if (tunKey) {
+        ASSERT(tunKey->dst != 0);
+        UINT8 optOffset = TunnelKeyGetOptionsOffset(tunKey);
+        RtlMoveMemory(((UINT8 *)&flow->tunKey) + optOffset,
+                      ((UINT8 *)tunKey) + optOffset,
+                      TunnelKeyGetRealSize(tunKey));
+    } else {
+        flow->tunKey.dst = 0;
+    }
+    flow->l2.offset = OvsGetFlowL2Offset(tunKey);
+    flow->l2.inPort = inPort;
+
+    if (OvsPacketLenNBL(packet) < ETH_HEADER_LEN_DIX) {
+        flow->l2.keyLen = OVS_WIN_TUNNEL_KEY_SIZE + 8 - flow->l2.offset;
+        OVS_LOG_INFO("len is not correct");
+        return NDIS_STATUS_SUCCESS;
+    }
+
+    /* Link layer. */
+    eth = (Eth_Header *)GetStartAddrNBL((NET_BUFFER_LIST *)packet);
+    RtlCopyMemory(flow->l2.dlSrc, eth->src, ETH_ADDR_LENGTH);
+    RtlCopyMemory(flow->l2.dlDst, eth->dst, ETH_ADDR_LENGTH);
+
+    /*
+     * vlan_tci.
+     */
+    vlanTagValue = NET_BUFFER_LIST_INFO(packet, Ieee8021QNetBufferListInfo);
+    if (vlanTagValue) {
+        PNDIS_NET_BUFFER_LIST_8021Q_INFO vlanTag =
+            (PNDIS_NET_BUFFER_LIST_8021Q_INFO)(PVOID *)&vlanTagValue;
+        flow->l2.vlanKey.vlanTci = htons(vlanTag->TagHeader.VlanId | OVSWIN_VLAN_CFI |
+            (vlanTag->TagHeader.UserPriority << 13));
+        flow->l2.vlanKey.vlanTpid = htons(ETH_TYPE_802_1PQ);
+    } else {
+        if (eth->dix.typeNBO == ETH_TYPE_802_1PQ_NBO) {
+            Eth_802_1pq_Tag *tag= (Eth_802_1pq_Tag *)&eth->dix.typeNBO;
+            flow->l2.vlanKey.vlanTci = htons(((UINT16)tag->priority << 13) |
+                OVSWIN_VLAN_CFI | ((UINT16)tag->vidHi << 8) | tag->vidLo);
+            flow->l2.vlanKey.vlanTpid = htons(ETH_TYPE_802_1PQ);
+            offset = sizeof (Eth_802_1pq_Tag);
+        } else {
+            /* Initialize vlan key to 0 for non vlan packets. */
+            flow->l2.vlanKey.vlanTci = 0;
+            flow->l2.vlanKey.vlanTpid = 0;
+        }
+        /*
+         * XXX Please note after this point, src mac and dst mac should
+         * not be accessed through eth
+         */
+        eth = (Eth_Header *)((UINT8 *)eth + offset);
+    }
+
+
+    /*
+     * dl_type.
+     *
+     * XXX assume that at least the first
+     * 12 bytes of received packets are mapped.  This code has the stronger
+     * assumption that at least the first 22 bytes of 'packet' is mapped (if my
+     * arithmetic is right).
+     */
+    if (ETH_TYPENOT8023(eth->dix.typeNBO)) {
+          flow->l2.dlType = eth->dix.typeNBO;
+          layers->l3Offset = ETH_HEADER_LEN_DIX + offset;
+    } else if (OvsPacketLenNBL(packet)  >= ETH_HEADER_LEN_802_3 &&
+          eth->e802_3.llc.dsap == 0xaa &&
+          eth->e802_3.llc.ssap == 0xaa &&
+          eth->e802_3.llc.control == ETH_LLC_CONTROL_UFRAME &&
+          eth->e802_3.snap.snapOrg[0] == 0x00 &&
+          eth->e802_3.snap.snapOrg[1] == 0x00 &&
+          eth->e802_3.snap.snapOrg[2] == 0x00) {
+          flow->l2.dlType = eth->e802_3.snap.snapType.typeNBO;
+          layers->l3Offset = ETH_HEADER_LEN_802_3 + offset;
+    } else {
+        flow->l2.dlType = htons(OVSWIN_DL_TYPE_NONE);
+        layers->l3Offset = ETH_HEADER_LEN_DIX + offset;
+    }
+
+    flow->l2.keyLen = OVS_WIN_TUNNEL_KEY_SIZE + OVS_L2_KEY_SIZE
+                      - flow->l2.offset;
+
+
+    /* Network layer. */
+    if (flow->l2.dlType == htons(ETH_TYPE_IPV4)) {
+        struct IPHdr ip_storage;
+        const struct IPHdr *nh;
+        IpKey *ipKey = &flow->ipKey;
+        UINT32 ipAddr = 0;
+        flow->l2.keyLen += OVS_IP_KEY_SIZE;
+        layers->isIPv4 = 1;
+        nh = OvsGetIp(packet, layers->l3Offset, &ip_storage);
+        if (nh) {
+            layers->l4Offset = layers->l3Offset + nh->ihl * 4;
+
+            ipKey->nwSrc = nh->saddr;
+            ipKey->nwDst = nh->daddr;
+            ipKey->nwProto = nh->protocol;
+
+            ipAddr = ipKey->nwSrc;
+            OVS_LOG_ERROR("Source: %d.%d.%d.%d, nbl %p",
+                          ipAddr & 0xff, (ipAddr >> 8) & 0xff,
+                          (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff,
+                          (NET_BUFFER_LIST *)packet);
+
+            OVS_LOG_ERROR("ipid %u hex:%x, Proto %u, nbl %p", ntohs(nh->id),
+                         ntohs(nh->id), ipKey->nwProto,
+                         (NET_BUFFER_LIST *)packet);
+
+            ipKey->nwTos = nh->tos;
+            if (nh->frag_off & htons(IP_MF | IP_OFFSET)) {
+                ipKey->nwFrag = OVS_FRAG_TYPE_FIRST;
+                if (nh->frag_off & htons(IP_OFFSET)) {
+                    ipKey->nwFrag = OVS_FRAG_TYPE_LATER;
+                }
+            } else {
+                ipKey->nwFrag = OVS_FRAG_TYPE_NONE;
+            }
+
+            ipKey->nwTtl = nh->ttl;
+            ipKey->l4.tpSrc = 0;
+            ipKey->l4.tpDst = 0;
+
+
+            if (!(nh->frag_off & htons(IP_OFFSET))) {
+                 if (ipKey->nwProto == SOCKET_IPPROTO_TCP) {
+                    OvsParseTcp(packet, NULL, layers);
+                    TCPHdr tcpStorage;
+                    const TCPHdr *tcp = OvsGetTcp(packet, layers->l4Offset, &tcpStorage);
+                } else if (ipKey->nwProto == SOCKET_IPPROTO_UDP) {
+                    OvsParseUdp(packet, NULL, layers);
+                } else if (ipKey->nwProto == SOCKET_IPPROTO_SCTP) {
+                } else if (ipKey->nwProto == SOCKET_IPPROTO_ICMP) {
+                    ICMPHdr icmpStorage;
+                    const ICMPHdr *icmp;
+
+                    icmp = OvsGetIcmp(packet, layers->l4Offset, &icmpStorage);
+                    if (icmp) {
+                        ipKey->l4.tpSrc = htons(icmp->type);
+                        ipKey->l4.tpDst = htons(icmp->code);
+                        layers->l7Offset = layers->l4Offset + sizeof *icmp;
+                    }
+                }
+            }
+        } else {
+            /* Invalid network header */
+            ((UINT64 *)ipKey)[0] = 0;
+            ((UINT64 *)ipKey)[1] = 0;
+            return NDIS_STATUS_INVALID_PACKET;
+        }
+    } else if (flow->l2.dlType == htons(ETH_TYPE_IPV6)) {
+               OVS_LOG_ERROR("IPV6 packet");
+    } else if (flow->l2.dlType == htons(ETH_TYPE_ARP)) {
+        EtherArp arpStorage;
+        const EtherArp *arp;
+        ArpKey *arpKey = &flow->arpKey;
+        //UINT32 ipAddr1 = 0;
+
+        ((UINT64 *)arpKey)[0] = 0;
+        ((UINT64 *)arpKey)[1] = 0;
+        ((UINT64 *)arpKey)[2] = 0;
+        flow->l2.keyLen += OVS_ARP_KEY_SIZE;
+        arp = OvsGetArp(packet, layers->l3Offset, &arpStorage);
+        if (arp && arp->ea_hdr.ar_hrd == htons(1) &&
+            arp->ea_hdr.ar_pro == htons(ETH_TYPE_IPV4) &&
+            arp->ea_hdr.ar_hln == ETH_ADDR_LENGTH &&
+            arp->ea_hdr.ar_pln == 4) {
+            /* We only match on the lower 8 bits of the opcode. */
+            if (ntohs(arp->ea_hdr.ar_op) <= 0xff) {
+                arpKey->nwProto = (UINT8)ntohs(arp->ea_hdr.ar_op);
+            }
+            if (arpKey->nwProto == ARPOP_REQUEST
+                || arpKey->nwProto == ARPOP_REPLY) {
+                RtlCopyMemory(&arpKey->nwSrc, arp->arp_spa, 4);
+                RtlCopyMemory(&arpKey->nwDst, arp->arp_tpa, 4);
+                RtlCopyMemory(arpKey->arpSha, arp->arp_sha, ETH_ADDR_LENGTH);
+                RtlCopyMemory(arpKey->arpTha, arp->arp_tha, ETH_ADDR_LENGTH);
+            }
+        }
+    } else if (OvsEthertypeIsMpls(flow->l2.dlType)) {
+         OVS_LOG_ERROR("mpls packet");
+    } else {
+       OVS_LOG_ERROR("other packet, nbl %p",
+                    (NET_BUFFER_LIST *)packet);
+    }
+
+    return NDIS_STATUS_SUCCESS;
+}
 
 __inline BOOLEAN
 FlowMemoryEqual(UINT64 *src, UINT64 *dst, UINT32 size)

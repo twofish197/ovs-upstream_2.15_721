@@ -773,8 +773,6 @@ OvsTunnelPortRx(OvsForwardingContext *ovsFwdCtx)
                                 &ovsFwdCtx->tunKey, &newNbl);
 
         OVS_LOG_INFO("after decap geneve Packet");
-        status1 = OvsDumpFlow(ovsFwdCtx->curNbl, ovsFwdCtx->srcVportNo, &key_dump,
-                       &layers_dump, NULL);
 
         break;
     default:
@@ -1979,7 +1977,7 @@ OvsExecuteRecirc(OvsForwardingContext *ovsFwdCtx,
             return NDIS_STATUS_SUCCESS;
         }
     }
-
+    OVS_LOG_INFO("recircle_id %d", NlAttrGetU32(actions));
     if (newNbl) {
         deferredAction = OvsAddDeferredActions(newNbl, key, NULL);
     } else {
@@ -1989,7 +1987,10 @@ OvsExecuteRecirc(OvsForwardingContext *ovsFwdCtx,
     if (deferredAction) {
         deferredAction->key.recircId = NlAttrGetU32(actions);
     } else {
+        OVS_LOG_INFO(
+            "Deferred actions limit reached, dropping nbl.");
         if (newNbl) {
+            OVS_LOG_INFO(" deferredAction null newNbl not null, newNbl %p", newNbl);
             ovsActionStats.deferredActionsQueueFull++;
             OvsCompleteNBL(ovsFwdCtx->switchContext, newNbl, TRUE);
         }
@@ -2221,10 +2222,12 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
         goto dropit;
     }
 
+    OVS_LOG_INFO("before loop round, actionsLen %d, nbl %p", actionsLen, ovsFwdCtx.curNbl);
+
     NL_ATTR_FOR_EACH_UNSAFE (a, rem, actions, actionsLen) {
         OVS_LOG_INFO("one round Action %d, layers isTcp %u, isUdp %u, nbl %p",
-                      ovsFwdCtx.layers.isTcp, ovsFwdCtx.layers.isUdp, NlAttrType(a), ovsFwdCtx.curNbl);
-        //status1 = OvsDumpFlow(ovsFwdCtx.curNbl, portNo, &key_dump, &layers_dump, NULL);
+                      NlAttrType(a), ovsFwdCtx.layers.isTcp, ovsFwdCtx.layers.isUdp, ovsFwdCtx.curNbl);
+        status1 = OvsDumpFlow_ip(ovsFwdCtx.curNbl, portNo, &key_dump, &layers_dump, NULL);
         //OVS_LOG_INFO(" after dump flow Action %d, nbl %p", NlAttrType(a), ovsFwdCtx.curNbl);
 
         switch(NlAttrType(a)) {
@@ -2392,7 +2395,6 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
             }
 
             PNET_BUFFER_LIST oldNbl = ovsFwdCtx.curNbl;
-            OVS_LOG_INFO("before OvsExecuteConntrackAction nbl %p", ovsFwdCtx.curNbl);
             status = OvsExecuteConntrackAction(&ovsFwdCtx, key,
                                                (const PNL_ATTR)a);
             OVS_LOG_INFO("after OvsExecuteConntrackAction status %d layers isTcp %u, isUdp %u, nbl %p",
@@ -2437,8 +2439,6 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
                 key->ipKey.nwFrag = OVS_FRAG_TYPE_NONE;
             }
 
-            OVS_LOG_INFO("after action CT processing layers isTcp %u, isUdp %u, nbl %p",
-                          ovsFwdCtx.layers.isTcp,  ovsFwdCtx.layers.isUdp, ovsFwdCtx.curNbl);
             break;
         }
 
@@ -2449,22 +2449,30 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
                 status = OvsOutputBeforeSetAction(&ovsFwdCtx);
                 if (status != NDIS_STATUS_SUCCESS) {
                     dropReason = L"OVS-adding destination failed";
+                    OVS_LOG_INFO("OVS-adding destination failed, nbl %p", ovsFwdCtx.curNbl);
                     goto dropit;
                 }
             }
 
+           OVS_LOG_INFO("recircle_id %d", NlAttrGetU32(actions));
             status = OvsExecuteRecirc(&ovsFwdCtx, key, (const PNL_ATTR)a, rem);
             if (status != NDIS_STATUS_SUCCESS) {
                 dropReason = L"OVS-recirculation action failed";
+                OVS_LOG_INFO("OVS-recirculation action failed, nbl %p", ovsFwdCtx.curNbl);
                 goto dropit;
-            }
-
-            if (NlAttrIsLast(a, rem)) {
-                goto exit;
             }
 
            OVS_LOG_INFO("action OVS_ACTION_ATTR_RECIRC, nbl %p", ovsFwdCtx.curNbl);
            OVS_LOG_INFO("layers isTcp %u, isUdp %u, nbl %p",
+                         ovsFwdCtx.layers.isTcp,  ovsFwdCtx.layers.isUdp, ovsFwdCtx.curNbl);
+
+            if (NlAttrIsLast(a, rem)) {
+                OVS_LOG_INFO("action a %d, nbl %p", NlAttrType(a), ovsFwdCtx.curNbl);
+                goto exit;
+            }
+
+           OVS_LOG_INFO("1 action OVS_ACTION_ATTR_RECIRC, nbl %p", ovsFwdCtx.curNbl);
+           OVS_LOG_INFO("1 layers isTcp %u, isUdp %u, nbl %p",
                          ovsFwdCtx.layers.isTcp,  ovsFwdCtx.layers.isUdp, ovsFwdCtx.curNbl);
             break;
         }
@@ -2533,6 +2541,8 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
         }
     }
 
+    OVS_LOG_INFO("after loop round, nbl %p", ovsFwdCtx.curNbl);
+
     if (ovsFwdCtx.destPortsSizeOut > 0 || ovsFwdCtx.tunnelTxNic != NULL
         || ovsFwdCtx.tunnelRxNic != NULL) {
         status = OvsOutputForwardingCtx(&ovsFwdCtx);
@@ -2544,6 +2554,8 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
     ASSERT(ovsFwdCtx.tunnelTxNic == NULL);
 
 dropit:
+
+    OVS_LOG_INFO("after loop round, drop it, nbl %p", ovsFwdCtx.curNbl);
     /*
      * If curNbl != NULL, it implies the NBL has not been not freed up so far.
      */
@@ -2552,6 +2564,8 @@ dropit:
     }
 
 exit:
+
+    OVS_LOG_INFO("after loop round, exit , nbl %p", ovsFwdCtx.curNbl);
     return status;
 }
 
