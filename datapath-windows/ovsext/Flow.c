@@ -2954,11 +2954,7 @@ OvsDumpFlow_ip(const NET_BUFFER_LIST *packet,
 
             if (!(nh->frag_off & htons(IP_OFFSET))) {
                  if (ipKey->nwProto == SOCKET_IPPROTO_TCP) {
-                    OvsParseTcp(packet, NULL, layers);
-                    TCPHdr tcpStorage;
-                    const TCPHdr *tcp = OvsGetTcp(packet, layers->l4Offset, &tcpStorage);
                 } else if (ipKey->nwProto == SOCKET_IPPROTO_UDP) {
-                    OvsParseUdp(packet, NULL, layers);
                 } else if (ipKey->nwProto == SOCKET_IPPROTO_SCTP) {
                 } else if (ipKey->nwProto == SOCKET_IPPROTO_ICMP) {
                     ICMPHdr icmpStorage;

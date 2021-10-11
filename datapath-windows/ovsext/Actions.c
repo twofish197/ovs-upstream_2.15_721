@@ -734,10 +734,11 @@ OvsTunnelPortRx(OvsForwardingContext *ovsFwdCtx)
     PNET_BUFFER_LIST newNbl = NULL;
     POVS_VPORT_ENTRY tunnelRxVport = ovsFwdCtx->tunnelRxNic;
     PCWSTR dropReason = L"OVS-dropped due to new decap packet";
+/*
     NDIS_STATUS status1;
     OVS_PACKET_HDR_INFO layers_dump = { 0 };
     OvsFlowKey key_dump = { 0 };
-
+*/
     if (OvsValidateIPChecksum(ovsFwdCtx->curNbl, &ovsFwdCtx->layers)
             != NDIS_STATUS_SUCCESS) {
         ovsActionStats.failedChecksum++;
@@ -2202,6 +2203,7 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
     NDIS_STATUS status1;
     OVS_PACKET_HDR_INFO layers_dump = { 0 };
     OvsFlowKey key_dump = { 0 };
+    INT action_index = 0;
 
 
     PNDIS_SWITCH_FORWARDING_DETAIL_NET_BUFFER_LIST_INFO fwdDetail =
@@ -2225,9 +2227,13 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
     OVS_LOG_INFO("before loop round, actionsLen %d, nbl %p", actionsLen, ovsFwdCtx.curNbl);
 
     NL_ATTR_FOR_EACH_UNSAFE (a, rem, actions, actionsLen) {
-        OVS_LOG_INFO("one round Action %d, layers isTcp %u, isUdp %u, nbl %p",
+      
+        OVS_LOG_INFO("one round a_i %d Action %d, layers isTcp %u, isUdp %u, nbl %p",
+                      action_index,
                       NlAttrType(a), ovsFwdCtx.layers.isTcp, ovsFwdCtx.layers.isUdp, ovsFwdCtx.curNbl);
+
         status1 = OvsDumpFlow_ip(ovsFwdCtx.curNbl, portNo, &key_dump, &layers_dump, NULL);
+        action_index++;
         //OVS_LOG_INFO(" after dump flow Action %d, nbl %p", NlAttrType(a), ovsFwdCtx.curNbl);
 
         switch(NlAttrType(a)) {
