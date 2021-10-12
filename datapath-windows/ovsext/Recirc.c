@@ -293,7 +293,9 @@ OvsAddDeferredActions(PNET_BUFFER_LIST nbl,
         deferredAction->nbl = nbl;
         deferredAction->actions = actions;
         deferredAction->key = *key;
-        deferredAction->layers = layers;
+        if (layers) {
+          deferredAction->layers = *layers;
+        }
     }
 
     return deferredAction;
@@ -321,7 +323,7 @@ OvsProcessDeferredActions(POVS_SWITCH_CONTEXT switchContext,
     /* Process all deferred actions. */
     while ((deferredAction = OvsDeferredActionsQueuePop(queue)) != NULL) {
         if (deferredAction->layers) {
-           layers_curr = deferredAction->layers;
+           layers_curr = &(deferredAction->layers);
         } else {
            layers_curr = layers;
         }

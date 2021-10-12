@@ -24,10 +24,10 @@
 #define DEFERRED_ACTION_EXEC_LEVEL           4
 
 typedef struct _OVS_DEFERRED_ACTION {
-    PNET_BUFFER_LIST     nbl;
-    PNL_ATTR             actions;
-    OvsFlowKey           key;
-    POVS_PACKET_HDR_INFO layers;
+    PNET_BUFFER_LIST    nbl;
+    PNL_ATTR            actions;
+    OvsFlowKey          key;
+    OVS_PACKET_HDR_INFO layers;
 } OVS_DEFERRED_ACTION, *POVS_DEFERRED_ACTION;
 
 /*
