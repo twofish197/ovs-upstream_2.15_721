@@ -1980,9 +1980,11 @@ OvsExecuteRecirc(OvsForwardingContext *ovsFwdCtx,
     }
     OVS_LOG_INFO("recircle_id %d", NlAttrGetU32(actions));
     if (newNbl) {
-        deferredAction = OvsAddDeferredActions(newNbl, key, NULL);
+        deferredAction = OvsAddDeferredActions(newNbl, key, ovsFwdCtx->layers,
+                                               NULL);
     } else {
-        deferredAction = OvsAddDeferredActions(ovsFwdCtx->curNbl, key, NULL);
+        deferredAction = OvsAddDeferredActions(ovsFwdCtx->curNbl, key,
+                                               ovsFwdCtx->layers, NULL);
     }
 
     if (deferredAction) {
@@ -2155,7 +2157,7 @@ OvsExecuteSampleAction(OvsForwardingContext *ovsFwdCtx,
         return STATUS_SUCCESS;
     }
 
-    if (!OvsAddDeferredActions(newNbl, key, a)) {
+    if (!OvsAddDeferredActions(newNbl, key, NULL, a)) {
         OVS_LOG_INFO(
             "Deferred actions limit reached, dropping sample action.");
         OvsCompleteNBL(ovsFwdCtx->switchContext, newNbl, TRUE);
@@ -2635,6 +2637,7 @@ OvsDoRecirc(POVS_SWITCH_CONTEXT switchContext,
     OvsForwardingContext ovsFwdCtx = { 0 };
     UINT64 hash = 0;
     ASSERT(layers);
+
 
     OvsInitForwardingCtx(&ovsFwdCtx, switchContext, curNbl,
                          srcPortNo, 0,
