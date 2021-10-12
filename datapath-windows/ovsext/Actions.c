@@ -1980,11 +1980,11 @@ OvsExecuteRecirc(OvsForwardingContext *ovsFwdCtx,
     }
     OVS_LOG_INFO("recircle_id %d", NlAttrGetU32(actions));
     if (newNbl) {
-        deferredAction = OvsAddDeferredActions(newNbl, key, ovsFwdCtx->layers,
+        deferredAction = OvsAddDeferredActions(newNbl, key, &(ovsFwdCtx->layers),
                                                NULL);
     } else {
         deferredAction = OvsAddDeferredActions(ovsFwdCtx->curNbl, key,
-                                               ovsFwdCtx->layers, NULL);
+                                               &(ovsFwdCtx->layers), NULL);
     }
 
     if (deferredAction) {
