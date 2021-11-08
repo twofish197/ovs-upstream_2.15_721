@@ -734,11 +734,6 @@ OvsTunnelPortRx(OvsForwardingContext *ovsFwdCtx)
     PNET_BUFFER_LIST newNbl = NULL;
     POVS_VPORT_ENTRY tunnelRxVport = ovsFwdCtx->tunnelRxNic;
     PCWSTR dropReason = L"OVS-dropped due to new decap packet";
-/*
-    NDIS_STATUS status1;
-    OVS_PACKET_HDR_INFO layers_dump = { 0 };
-    OvsFlowKey key_dump = { 0 };
-*/
     if (OvsValidateIPChecksum(ovsFwdCtx->curNbl, &ovsFwdCtx->layers)
             != NDIS_STATUS_SUCCESS) {
         ovsActionStats.failedChecksum++;
@@ -1547,28 +1542,6 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
         udpHdr = (UDPHdr *)(bufferStart + layers->l4Offset);
     }
 
-    if (ipHdr) {
-          if (ipHdr->protocol == SOCKET_IPPROTO_TCP) {
-              TCPHdr tcpStorage;
-              const TCPHdr *tcp = OvsGetTcp(ovsFwdCtx->curNbl, layers->l4Offset, &tcpStorage);
-              if (tcp) {
-                 OVS_LOG_INFO("TCP seq %u checksum %u hex 0x%x, nbl %p",
-                             ntohl(tcp->seq),
-                             ntohs(tcp->check), ntohs(tcp->check),
-                             ovsFwdCtx->curNbl);
-                OVS_LOG_INFO("TCP src_port %u dst_port %u, isTcp %u, isUdp %u, nbl %p",
-                             ntohs(tcp->source), ntohs(tcp->dest),
-                             layers->isTcp,  layers->isUdp,
-                             ovsFwdCtx->curNbl);
-             }
-         } else if (ipHdr->protocol == SOCKET_IPPROTO_UDP) {
-              UDPHdr udpStorage;
-              const UDPHdr *udp = OvsGetUdp(ovsFwdCtx->curNbl, layers->l4Offset, &udpStorage);
-              if (udp) {
-                 OVS_LOG_INFO("udp packet, nbl %p", ovsFwdCtx->curNbl);
-              }
-         }
-    }
     OVS_LOG_INFO("nbl %p ", ovsFwdCtx->curNbl);
     if (ipHdr) {
            OVS_LOG_INFO("before update address ,nbl %p", ovsFwdCtx->curNbl);
@@ -2226,15 +2199,12 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
         goto dropit;
     }
 
-    OVS_LOG_INFO("before loop round, actionsLen %d, nbl %p", actionsLen, ovsFwdCtx.curNbl);
-
     NL_ATTR_FOR_EACH_UNSAFE (a, rem, actions, actionsLen) {
       
-        OVS_LOG_INFO("one round a_i %d Action %d, layers isTcp %u, isUdp %u, nbl %p",
-                      action_index,
-                      NlAttrType(a), ovsFwdCtx.layers.isTcp, ovsFwdCtx.layers.isUdp, ovsFwdCtx.curNbl);
+        OVS_LOG_INFO("one round a_i %d Action %d, nbl %p",
+                      action_index, NlAttrType(a), ovsFwdCtx.curNbl);
 
-        status1 = OvsDumpFlow_ip(ovsFwdCtx.curNbl, portNo, &key_dump, &layers_dump, NULL);
+        //status1 = OvsDumpFlow_ip(ovsFwdCtx.curNbl, portNo, &key_dump, &layers_dump, NULL);
         action_index++;
         //OVS_LOG_INFO(" after dump flow Action %d, nbl %p", NlAttrType(a), ovsFwdCtx.curNbl);
 
@@ -2393,8 +2363,7 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
                 || ovsFwdCtx.tunnelTxNic != NULL
                 || ovsFwdCtx.tunnelRxNic != NULL) {
                 status = OvsOutputBeforeSetAction(&ovsFwdCtx);
-               OVS_LOG_INFO("after OvsOutputBeforeSetAction layers.isTcp %u is Udp %u,nbl %p", 
-                            ovsFwdCtx.layers.isTcp,  ovsFwdCtx.layers.isUdp,
+               OVS_LOG_INFO("after OvsOutputBeforeSetAction,nbl %p",
                             ovsFwdCtx.curNbl);
                 if (status != NDIS_STATUS_SUCCESS) {
                     dropReason = L"OVS-adding destination failed";
@@ -2405,8 +2374,8 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
             PNET_BUFFER_LIST oldNbl = ovsFwdCtx.curNbl;
             status = OvsExecuteConntrackAction(&ovsFwdCtx, key,
                                                (const PNL_ATTR)a);
-            OVS_LOG_INFO("after OvsExecuteConntrackAction status %d layers isTcp %u, isUdp %u, nbl %p",
-                         status, ovsFwdCtx.layers.isTcp,  ovsFwdCtx.layers.isUdp, ovsFwdCtx.curNbl);
+            OVS_LOG_INFO("after OvsExecuteConntrackAction status %d, nbl %p",
+                         status, ovsFwdCtx.curNbl);
 
              if (status == NDIS_STATUS_NOT_SUPPORTED) {
                  /*
