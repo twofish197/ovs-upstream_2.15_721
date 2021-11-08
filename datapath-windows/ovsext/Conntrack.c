@@ -1076,7 +1076,7 @@ OvsExecuteConntrackAction(OvsForwardingContext *fwdCtx,
     NAT_ACTION_INFO natActionInfo;
     OVS_PACKET_HDR_INFO *layers = &fwdCtx->layers;
     NDIS_STATUS status;
-    NDIS_STATUS status1;
+    //NDIS_STATUS status1;
     UINT8       update_flow_key = 0;
     NDIS_STATUS statusExtract = NDIS_STATUS_SUCCESS;
     OvsFlowKey  keyFrag = { 0 };
