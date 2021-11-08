@@ -1078,7 +1078,7 @@ OvsExecuteConntrackAction(OvsForwardingContext *fwdCtx,
     NDIS_STATUS status;
     NDIS_STATUS status1;
     UINT8       update_flow_key = 0;
-    NDIS_STATUS statusFrag = NDIS_STATUS_PENDING;
+    NDIS_STATUS statusExtract = NDIS_STATUS_SUCCESS;
     OvsFlowKey  keyFrag = { 0 };
     /*
     OVS_PACKET_HDR_INFO layers_dump = { 0 };
@@ -1090,16 +1090,13 @@ OvsExecuteConntrackAction(OvsForwardingContext *fwdCtx,
         return status;
     }
     if (update_flow_key) {
-        /*after the Ipv4 Fragment is reassembled it
-          needs update FwdCtx flow key*/
         statusExtract =
            OvsExtractFlow(fwdCtx->curNbl, fwdCtx->srcVportNo,
                          &keyFrag, &fwdCtx->layers,
                          fwdCtx->tunKey.dst != 0 ? &fwdCtx->tunKey : NULL);
         if (statusExtract != NDIS_STATUS_SUCCESS) {
-             OvsCompleteNBLForwardingCtx(fwdCtx,
-                          L"OVS-Flow extract failed");
-             ovsActionStats.failedFlowExtract++;
+             OVS_LOG_INFO(" Extract flow failed status %d Nbl %p",
+                          statusExtract, fwdCtx->curNbl);
              return statusExtract;
         }
         *key = keyFrag;
