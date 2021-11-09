@@ -1561,9 +1561,8 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
            OVS_LOG_INFO("ipid %u hex:0x%x, Proto %u, nbl %p", ntohs(ipHdr->id),
                          ntohs(ipHdr->id), ipHdr->protocol,
                          ovsFwdCtx->curNbl);
-           OVS_LOG_INFO("Port %u newPort %u, isTcp %u isUdp %u, nbl %p",
+           OVS_LOG_INFO("Port %u newPort %u, nbl %p",
                          ntohs(old_port), ntohs(newPort),
-                         layers->isTcp, layers->isUdp,
                          ovsFwdCtx->curNbl);
 
            if (tcpHdr) {
@@ -1681,9 +1680,8 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
                          ntohs(ipHdr->id), ipHdr->protocol,
                          ovsFwdCtx->curNbl);
 
-           OVS_LOG_INFO("Port %u newPort %u, isTcp %u isUdp %u, nbl %p",
+           OVS_LOG_INFO("Port %u newPort %u, nbl %p",
                          ntohs(old_port), ntohs(newPort),
-                         layers->isTcp, layers->isUdp,
                          ovsFwdCtx->curNbl);
            if (tcpHdr) {
                    OVS_LOG_INFO("the TCP 21 seq %u,checksum %u 0x%x, nbl %p",
@@ -2431,7 +2429,6 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
                 }
             }
 
-           OVS_LOG_INFO("recircle_id %d", NlAttrGetU32(actions));
             status = OvsExecuteRecirc(&ovsFwdCtx, key, (const PNL_ATTR)a, rem);
             if (status != NDIS_STATUS_SUCCESS) {
                 dropReason = L"OVS-recirculation action failed";
@@ -2439,18 +2436,11 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
                 goto dropit;
             }
 
-           OVS_LOG_INFO("action OVS_ACTION_ATTR_RECIRC, nbl %p", ovsFwdCtx.curNbl);
-           OVS_LOG_INFO("layers isTcp %u, isUdp %u, nbl %p",
-                         ovsFwdCtx.layers.isTcp,  ovsFwdCtx.layers.isUdp, ovsFwdCtx.curNbl);
-
             if (NlAttrIsLast(a, rem)) {
                 OVS_LOG_INFO("action a %d, nbl %p", NlAttrType(a), ovsFwdCtx.curNbl);
                 goto exit;
             }
 
-           OVS_LOG_INFO("1 action OVS_ACTION_ATTR_RECIRC, nbl %p", ovsFwdCtx.curNbl);
-           OVS_LOG_INFO("1 layers isTcp %u, isUdp %u, nbl %p",
-                         ovsFwdCtx.layers.isTcp,  ovsFwdCtx.layers.isUdp, ovsFwdCtx.curNbl);
             break;
         }
 
@@ -2575,8 +2565,6 @@ OvsActionsExecute(POVS_SWITCH_CONTEXT switchContext,
                                  portNo, sendFlags, key, hash, layers,
                                  actions, actionsLen);
 
-    OVS_LOG_INFO("after OvsDoExecuteActions layers isTcp %u, isUdp %u, nbl %p",
-                  layers->isTcp,  layers->isUdp, curNbl);
     if (status == STATUS_SUCCESS) {
         status = OvsProcessDeferredActions(switchContext, completionList,
                                            portNo, sendFlags, layers);

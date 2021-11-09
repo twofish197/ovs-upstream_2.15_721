@@ -334,8 +334,8 @@ OvsStartNBLIngress(POVS_SWITCH_CONTEXT switchContext,
                 goto dropit;
             }
 
-            OVS_LOG_INFO("after OvsExtractFlow portNo %d isTcp %u isUdp %u, nbl %p",
-                          portNo, layers.isTcp, layers.isUdp, curNbl);
+            OVS_LOG_INFO("after OvsExtractFlow portNo %d, nbl %p",
+                          portNo, curNbl);
 
             ASSERT(KeGetCurrentIrql() == DISPATCH_LEVEL);
             OvsAcquireDatapathRead(datapath, &dpLockState, TRUE);

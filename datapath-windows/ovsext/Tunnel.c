@@ -293,8 +293,6 @@ OvsInjectPacketThroughActions(PNET_BUFFER_LIST pNbl,
         if (status != NDIS_STATUS_SUCCESS) {
             goto unlockAndDrop;
         }
-        OVS_LOG_INFO("after OvsExtractFlow isTcp %u isUdp %u nbl %p",
-                     layers.isTcp, layers.isUdp, pNbl);
 
         flow = OvsLookupFlow(datapath, &key, &hash, FALSE);
         if (flow) {
@@ -306,8 +304,6 @@ OvsInjectPacketThroughActions(PNET_BUFFER_LIST pNbl,
                               portNo, SendFlags, &key, &hash, &layers,
                               flow->actions, flow->actionsLen);
 
-            OVS_LOG_INFO("after OvsActionsExecute isTcp %u isUdp %u nbl %p",
-                        layers.isTcp, layers.isUdp, pNbl);
             OvsReleaseDatapath(datapath, &dpLockState);
         } else {
             POVS_PACKET_QUEUE_ELEM elem;

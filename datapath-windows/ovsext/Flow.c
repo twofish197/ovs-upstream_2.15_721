@@ -2719,9 +2719,8 @@ OvsDumpFlow(const NET_BUFFER_LIST *packet,
                                      ntohl(tcp->seq),
                                      ntohs(tcp->check), ntohs(tcp->check),
                                      (NET_BUFFER_LIST *)packet);
-                        OVS_LOG_INFO("TCP src_port %u dst_port %u, isTcp %u, isUdp %u, nbl %p",
+                        OVS_LOG_INFO("TCP src_port %u dst_port %u nbl %p",
                                      ntohs(tcp->source), ntohs(tcp->dest),
-                                     layers->isTcp,  layers->isUdp,
                                      (NET_BUFFER_LIST *)packet);
                     }
                 } else if (ipKey->nwProto == SOCKET_IPPROTO_UDP) {

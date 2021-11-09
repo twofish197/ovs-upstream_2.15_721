@@ -498,9 +498,10 @@ OvsCtEntryDelete(POVS_CT_ENTRY entry, BOOLEAN forceDelete)
 
 static __inline NDIS_STATUS
 OvsDetectCtPacket(OvsForwardingContext *fwdCtx,
-                  OvsFlowKey *key, UINT8 *update_flow_key)
+                  OvsFlowKey *key)
 {
-    NDIS_STATUS status = NDIS_STATUS_PENDING;
+    NDIS_STATUS status = NDIS_STATUS_SUCCESS;
+    OvsFlowKey  newFlowKey = { 0 };
     NDIS_STATUS status1;
     OVS_PACKET_HDR_INFO layers_dump = { 0 };
     OvsFlowKey key_dump = { 0 };
@@ -512,15 +513,24 @@ OvsDetectCtPacket(OvsForwardingContext *fwdCtx,
            OVS_LOG_INFO("dump ip fragment, nbl %p", fwdCtx->curNbl);
            status1 = OvsDumpFlow_ip(fwdCtx->curNbl, fwdCtx->srcVportNo, &key_dump, &layers_dump, NULL);
            status = OvsProcessIpv4Fragment(fwdCtx->switchContext,
-                                          &fwdCtx->curNbl,
-                                          fwdCtx->completionList,
-                                          fwdCtx->fwdDetail->SourcePortId,
-                                          &fwdCtx->layers,
-                                          key->tunKey.tunnelId);
-
+                                           &fwdCtx->curNbl,
+                                           fwdCtx->completionList,
+                                           fwdCtx->fwdDetail->SourcePortId,
+                                           &fwdCtx->layers,
+                                           key->tunKey.tunnelId);
            if (status == NDIS_STATUS_SUCCESS) {
-               /*after the Ipv4 Fragment is reassembled, update flow key as L3 and L4 headers are not correct */
-                *update_flow_key = 1;
+               /*after the Ipv4 Fragment is reassembled, update flow key as L3 and
+                 L4 headers are not correct */
+               status =
+                     OvsExtractFlow(fwdCtx->curNbl, fwdCtx->srcVportNo,
+                                    &newFlowKey, &fwdCtx->layers,
+                                    fwdCtx->tunKey.dst != 0 ? &fwdCtx->tunKey : NULL);
+               if (statusExtract != NDIS_STATUS_SUCCESS) {
+                     OVS_LOG_INFO(" Extract flow failed status %d Nbl %p",
+                                  status, fwdCtx->curNbl);
+                     return status;
+                }
+                *key = newFlowKey;
            }
            return status;
         }
@@ -1077,29 +1087,14 @@ OvsExecuteConntrackAction(OvsForwardingContext *fwdCtx,
     OVS_PACKET_HDR_INFO *layers = &fwdCtx->layers;
     NDIS_STATUS status;
     //NDIS_STATUS status1;
-    UINT8       update_flow_key = 0;
-    NDIS_STATUS statusExtract = NDIS_STATUS_SUCCESS;
-    OvsFlowKey  keyFrag = { 0 };
     /*
     OVS_PACKET_HDR_INFO layers_dump = { 0 };
     OvsFlowKey key_dump = { 0 };
    */
     memset(&natActionInfo, 0, sizeof natActionInfo);
-    status = OvsDetectCtPacket(fwdCtx, key, &update_flow_key);
+    status = OvsDetectCtPacket(fwdCtx, key);
     if (status != NDIS_STATUS_SUCCESS) {
         return status;
-    }
-    if (update_flow_key) {
-        statusExtract =
-           OvsExtractFlow(fwdCtx->curNbl, fwdCtx->srcVportNo,
-                         &keyFrag, &fwdCtx->layers,
-                         fwdCtx->tunKey.dst != 0 ? &fwdCtx->tunKey : NULL);
-        if (statusExtract != NDIS_STATUS_SUCCESS) {
-             OVS_LOG_INFO(" Extract flow failed status %d Nbl %p",
-                          statusExtract, fwdCtx->curNbl);
-             return statusExtract;
-        }
-        *key = keyFrag;
     }
 
     PNL_ATTR ctAttr = NULL;
