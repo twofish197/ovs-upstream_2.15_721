@@ -525,7 +525,7 @@ OvsDetectCtPacket(OvsForwardingContext *fwdCtx,
                      OvsExtractFlow(fwdCtx->curNbl, fwdCtx->srcVportNo,
                                     &newFlowKey, &fwdCtx->layers,
                                     fwdCtx->tunKey.dst != 0 ? &fwdCtx->tunKey : NULL);
-               if (statusExtract != NDIS_STATUS_SUCCESS) {
+               if (status != NDIS_STATUS_SUCCESS) {
                      OVS_LOG_INFO(" Extract flow failed status %d Nbl %p",
                                   status, fwdCtx->curNbl);
                      return status;
