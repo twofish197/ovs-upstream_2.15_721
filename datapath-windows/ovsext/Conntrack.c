@@ -1086,11 +1086,10 @@ OvsExecuteConntrackAction(OvsForwardingContext *fwdCtx,
     NAT_ACTION_INFO natActionInfo;
     OVS_PACKET_HDR_INFO *layers = &fwdCtx->layers;
     NDIS_STATUS status;
-    //NDIS_STATUS status1;
-    /*
+    NDIS_STATUS status1;
     OVS_PACKET_HDR_INFO layers_dump = { 0 };
     OvsFlowKey key_dump = { 0 };
-   */
+
     memset(&natActionInfo, 0, sizeof natActionInfo);
     status = OvsDetectCtPacket(fwdCtx, key);
     if (status != NDIS_STATUS_SUCCESS) {
@@ -1208,8 +1207,8 @@ OvsExecuteConntrackAction(OvsForwardingContext *fwdCtx,
                            commit, force, zone, mark, labels, helper, &natActionInfo,
                            postUpdateEvent);
 
-   //OVS_LOG_INFO("after OvsCtExecute_ dump flow nbl %p", fwdCtx->curNbl);
-   //status1 = OvsDumpFlow(fwdCtx->curNbl, 0, &key_dump, &layers_dump, NULL);
+    OVS_LOG_INFO("after OvsCtExecute_ dump flow nbl %p", fwdCtx->curNbl);
+    status1 = OvsDumpFlow(fwdCtx->curNbl, 0, &key_dump, &layers_dump, NULL);
     return status;
 }
 

@@ -1558,8 +1558,8 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
                            (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff,
                            ovsFwdCtx->curNbl);
 
-           OVS_LOG_INFO("ipid %u hex:0x%x, Proto %u, nbl %p", ntohs(ipHdr->id),
-                         ntohs(ipHdr->id), ipHdr->protocol,
+           OVS_LOG_INFO("ipid %u hex:0x%x, Proto %u, tos $u, nbl %p", ntohs(ipHdr->id),
+                         ntohs(ipHdr->id), ipHdr->protocol, ipHdr->tos,
                          ovsFwdCtx->curNbl);
            OVS_LOG_INFO("Port %u newPort %u, nbl %p",
                          ntohs(old_port), ntohs(newPort),
@@ -1676,8 +1676,8 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
                          (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff,
                          ovsFwdCtx->curNbl);
 
-           OVS_LOG_INFO("ipid %u hex:0x%x, Proto %u, nbl %p", ntohs(ipHdr->id),
-                         ntohs(ipHdr->id), ipHdr->protocol,
+           OVS_LOG_INFO("ipid %u hex:0x%x, Proto %u, tos $u, nbl %p", ntohs(ipHdr->id),
+                         ntohs(ipHdr->id), ipHdr->protocol, ipHdr->tos,
                          ovsFwdCtx->curNbl);
 
            OVS_LOG_INFO("Port %u newPort %u, nbl %p",
@@ -2198,7 +2198,6 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
     }
 
     NL_ATTR_FOR_EACH_UNSAFE (a, rem, actions, actionsLen) {
-      
         OVS_LOG_INFO("one round a_i %d Action %d, nbl %p",
                       action_index, NlAttrType(a), ovsFwdCtx.curNbl);
 
@@ -2479,7 +2478,7 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
                 goto dropit;
             }
 
-           OVS_LOG_INFO("action OVS_ACTION_ATTR_SET nbl %p", ovsFwdCtx.curNbl);
+            OVS_LOG_INFO("action OVS_ACTION_ATTR_SET nbl %p", ovsFwdCtx.curNbl);
             break;
         }
         case OVS_ACTION_ATTR_SAMPLE:
@@ -2508,8 +2507,6 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
         }
     }
 
-    OVS_LOG_INFO("after loop round, nbl %p", ovsFwdCtx.curNbl);
-
     if (ovsFwdCtx.destPortsSizeOut > 0 || ovsFwdCtx.tunnelTxNic != NULL
         || ovsFwdCtx.tunnelRxNic != NULL) {
         status = OvsOutputForwardingCtx(&ovsFwdCtx);
@@ -2522,7 +2519,6 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
 
 dropit:
 
-    OVS_LOG_INFO("after loop round, drop it, nbl %p", ovsFwdCtx.curNbl);
     /*
      * If curNbl != NULL, it implies the NBL has not been not freed up so far.
      */
@@ -2532,7 +2528,6 @@ dropit:
 
 exit:
 
-    OVS_LOG_INFO("after loop round, exit , nbl %p", ovsFwdCtx.curNbl);
     return status;
 }
 

@@ -2690,11 +2690,12 @@ OvsDumpFlow(const NET_BUFFER_LIST *packet,
                          ipAddr & 0xff, (ipAddr >> 8) & 0xff,
                          (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff,
                          (NET_BUFFER_LIST *)packet);
-            OVS_LOG_ERROR("ipid %u hex:%x, Proto %u, nbl %p", ntohs(nh->id),
-                         ntohs(nh->id), ipKey->nwProto,
-                         (NET_BUFFER_LIST *)packet);
 
             ipKey->nwTos = nh->tos;
+
+            OVS_LOG_ERROR("ipid %u hex:%x, Proto %u, nwTos %u, nbl %p", ntohs(nh->id),
+                         ntohs(nh->id), ipKey->nwProto, ipKey->nwTos,
+                         (NET_BUFFER_LIST *)packet);
             if (nh->frag_off & htons(IP_MF | IP_OFFSET)) {
                 ipKey->nwFrag = OVS_FRAG_TYPE_FIRST;
                 if (nh->frag_off & htons(IP_OFFSET)) {
@@ -2932,11 +2933,12 @@ OvsDumpFlow_ip(const NET_BUFFER_LIST *packet,
                           (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff,
                           (NET_BUFFER_LIST *)packet);
 
-            OVS_LOG_ERROR("ipid %u hex:%x, Proto %u, nbl %p", ntohs(nh->id),
-                         ntohs(nh->id), ipKey->nwProto,
+            ipKey->nwTos = nh->tos;
+
+            OVS_LOG_ERROR("ipid %u hex:%x, Proto %u, nwTos %u, nbl %p", ntohs(nh->id),
+                         ntohs(nh->id), ipKey->nwProto, ipKey->nwTos,
                          (NET_BUFFER_LIST *)packet);
 
-            ipKey->nwTos = nh->tos;
             if (nh->frag_off & htons(IP_MF | IP_OFFSET)) {
                 ipKey->nwFrag = OVS_FRAG_TYPE_FIRST;
                 if (nh->frag_off & htons(IP_OFFSET)) {
