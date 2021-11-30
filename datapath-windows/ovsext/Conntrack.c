@@ -1208,7 +1208,7 @@ OvsExecuteConntrackAction(OvsForwardingContext *fwdCtx,
                            postUpdateEvent);
 
     OVS_LOG_INFO("after OvsCtExecute_ dump flow nbl %p", fwdCtx->curNbl);
-    status1 = OvsDumpFlow(fwdCtx->curNbl, 0, &key_dump, &layers_dump, NULL);
+    status1 = OvsDumpFlow_ip(fwdCtx->curNbl, 0, &key_dump, &layers_dump, NULL);
     return status;
 }
 

@@ -2201,9 +2201,9 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
         OVS_LOG_INFO("one round a_i %d Action %d, nbl %p",
                       action_index, NlAttrType(a), ovsFwdCtx.curNbl);
 
-        //status1 = OvsDumpFlow_ip(ovsFwdCtx.curNbl, portNo, &key_dump, &layers_dump, NULL);
+        status1 = OvsDumpFlow_ip(ovsFwdCtx.curNbl, portNo, &key_dump, &layers_dump, NULL);
         action_index++;
-        //OVS_LOG_INFO(" after dump flow Action %d, nbl %p", NlAttrType(a), ovsFwdCtx.curNbl);
+        OVS_LOG_INFO(" after dump flow Action %d, nbl %p", NlAttrType(a), ovsFwdCtx.curNbl);
 
         switch(NlAttrType(a)) {
         case OVS_ACTION_ATTR_OUTPUT:

@@ -496,8 +496,8 @@ OvsExecuteDpIoctl(OvsPacketExecute *execute)
     }
     OVS_LOG_INFO("after OvsExtractFlow portNo %d pNbl %p", execute->inPort, pNbl);
 
-    status1 = OvsDumpFlow(pNbl, execute->inPort, &key_dump, &layers_dump,
-                         tempTunKey.tunKey.dst == 0 ? NULL : &tempTunKey.tunKey);
+    status1 = OvsDumpFlow_ip(pNbl, execute->inPort, &key_dump, &layers_dump,
+                            tempTunKey.tunKey.dst == 0 ? NULL : &tempTunKey.tunKey);
 
     OVS_LOG_INFO("after OvsDumpFlow status %d pNbl %p", status1, pNbl);
 
