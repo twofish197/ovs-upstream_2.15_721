@@ -585,4 +585,6 @@ int ftruncate(int fd, off_t length);
 }
 #endif
 
+void
+nl_msg_dump_buffer(const char *packet, size_t size);
 #endif /* util.h */

@@ -1825,6 +1825,9 @@ dpif_netlink_encode_execute(int dp_ifindex, const struct dpif_execute *d_exec,
                       dp_packet_data(d_exec->packet),
                       dp_packet_size(d_exec->packet));
 
+    nl_msg_dump_buffer((char *)dp_packet_data(d_exec->packet),
+                       dp_packet_size(d_exec->packet));
+
     key_ofs = nl_msg_start_nested(buf, OVS_PACKET_ATTR_KEY);
     odp_key_from_dp_packet(buf, d_exec->packet);
     nl_msg_end_nested(buf, key_ofs);
@@ -4684,4 +4687,22 @@ report_loss(struct dpif_netlink *dpif, struct dpif_channel *ch, uint32_t ch_idx,
     VLOG_WARN("%s: lost packet on port channel %u of handler %u%s",
               dpif_name(&dpif->dpif), ch_idx, handler_id, ds_cstr(&s));
     ds_destroy(&s);
+}
+
+void
+nl_msg_dump_buffer(const char *packet, size_t size)
+{
+    uint32_t i = 0, j = 0;
+    if( size >= 36)  {
+           for (j = 0; j < 3; j++) {
+                i= j*12;
+                VLOG_ERR("%02d-%02d: %02x.%02x.%02x.%02x.%02x.%02x   %02x.%02x.%02x.%02x.%02x.%02x",
+                         i,  i+11,
+                         (unsigned char)packet[i+0], (unsigned char)packet[i+1], (unsigned char)packet[i+2],
+                         (unsigned char)packet[i+3], (unsigned char)packet[i+4], (unsigned char)packet[i+5],
+                         (unsigned char)packet[i+6], (unsigned char)packet[i+7], (unsigned char)packet[i+8],
+                         (unsigned char)packet[i+9], (unsigned char)packet[i+10], (unsigned char)packet[i+11]);
+          }
+   }
+   return;
 }

@@ -2916,7 +2916,7 @@ OvsDumpFlow_ip(const NET_BUFFER_LIST *packet,
         struct IPHdr ip_storage;
         const struct IPHdr *nh;
         IpKey *ipKey = &flow->ipKey;
-        UINT32 ipAddr = 0;
+        UINT32 ipAddr = 0, ipAddr1 = 0;
         flow->l2.keyLen += OVS_IP_KEY_SIZE;
         layers->isIPv4 = 1;
         nh = OvsGetIp(packet, layers->l3Offset, &ip_storage);
@@ -2927,23 +2927,17 @@ OvsDumpFlow_ip(const NET_BUFFER_LIST *packet,
             ipKey->nwDst = nh->daddr;
             ipKey->nwProto = nh->protocol;
 
-            ipAddr = ipKey->nwSrc;
-            OVS_LOG_ERROR("Source: %d.%d.%d.%d, nbl %p",
-                          ipAddr & 0xff, (ipAddr >> 8) & 0xff,
-                          (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff,
-                          (NET_BUFFER_LIST *)packet);
-
-            ipAddr = ipKey->nwDst;
-            OVS_LOG_ERROR("Destination: %d.%d.%d.%d, nbl %p",
-                         ipAddr & 0xff, (ipAddr >> 8) & 0xff,
-                         (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff,
-                         (NET_BUFFER_LIST *)packet);
+            ipAddr  = ipKey->nwSrc;
+            ipAddr1 = ipKey->nwDst;
 
             ipKey->nwTos = nh->tos;
-
-            OVS_LOG_ERROR("ipid %u hex:%x, Proto %u, nwTos %u, nbl %p", ntohs(nh->id),
-                         ntohs(nh->id), ipKey->nwProto, ipKey->nwTos,
-                         (NET_BUFFER_LIST *)packet);
+            OVS_LOG_ERROR("src: %d.%d.%d.%d,dst: %d.%d.%d.%d,ipid %u hex:%x,Proto %u,nwTos %u,nbl %p",
+                          ipAddr & 0xff, (ipAddr >> 8) & 0xff,
+                          (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff,
+                          ipAddr1 & 0xff, (ipAddr1 >> 8) & 0xff,
+                          (ipAddr1 >> 16) & 0xff, (ipAddr1 >> 24) & 0xff,
+                          ntohs(nh->id), ipKey->nwProto, ipKey->nwTos,
+                          (NET_BUFFER_LIST *)packet);
 
             if (nh->frag_off & htons(IP_MF | IP_OFFSET)) {
                 ipKey->nwFrag = OVS_FRAG_TYPE_FIRST;
@@ -3018,6 +3012,25 @@ OvsDumpFlow_ip(const NET_BUFFER_LIST *packet,
     }
 
     return NDIS_STATUS_SUCCESS;
+}
+
+void
+OvsDumpFlow_buffer(char *packet,
+                   UINT32 size)
+{
+    uint32_t i = 0, j = 0;
+    if( size >= 36)  {
+        for (j = 0; j< 3; j++) {
+             i= j * 12;
+             OVS_LOG_ERROR("%02d-%02d: %02x.%02x.%02x.%02x.%02x.%02x  %02x.%02x.%02x.%02x.%02x.%02x",
+                           i,  i+11,
+                          (unsigned char)packet[i+0], (unsigned char)packet[i+1], (unsigned char)packet[i+2],
+                          (unsigned char)packet[i+3], (unsigned char)packet[i+4], (unsigned char)packet[i+5],
+                          (unsigned char)packet[i+6], (unsigned char)packet[i+7], (unsigned char)packet[i+8],
+                          (unsigned char)packet[i+9], (unsigned char)packet[i+10], (unsigned char)packet[i+11]);
+        }
+   }
+   return;
 }
 
 __inline BOOLEAN

@@ -100,7 +100,12 @@ VOID MapTunAttrToFlowPut(PNL_ATTR *keyAttrs, PNL_ATTR *tunAttrs,
                          OvsFlowKey *destKey);
 UINT32 OvsFlowKeyAttrSize(void);
 UINT32 OvsTunKeyAttrSize(void);
+
 NTSTATUS OvsTunnelAttrToIPv4TunnelKey(PNL_ATTR attr, OvsIPv4TunnelKey *tunKey);
+
+void
+OvsDumpFlow_buffer(char *packet,
+                   UINT32 size);
 
 /* Flags for tunneling */
 #define OVS_TNL_F_DONT_FRAGMENT         (1 << 0)
