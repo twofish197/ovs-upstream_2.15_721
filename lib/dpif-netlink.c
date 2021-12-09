@@ -1825,6 +1825,7 @@ dpif_netlink_encode_execute(int dp_ifindex, const struct dpif_execute *d_exec,
                       dp_packet_data(d_exec->packet),
                       dp_packet_size(d_exec->packet));
 
+    VLOG_ERR("dpif_netlink_encode_execute");
     nl_msg_dump_buffer((char *)dp_packet_data(d_exec->packet),
                        dp_packet_size(d_exec->packet));
 

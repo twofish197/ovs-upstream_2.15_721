@@ -1150,6 +1150,8 @@ ofputil_decode_packet_out(struct ofputil_packet_out *po,
     if (po->buffer_id == UINT32_MAX) {
         po->packet = b.data;
         po->packet_len = b.size;
+
+        VLOG_WARN_RL(&rl, "ofutil_decode_packet_out");
         nl_msg_dump_buffer((char *)(po->packet),
                            po->packet_len);
     } else {
