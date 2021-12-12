@@ -1151,9 +1151,13 @@ ofputil_decode_packet_out(struct ofputil_packet_out *po,
         po->packet = b.data;
         po->packet_len = b.size;
 
-        VLOG_ERR("ofutil_decode_packet_out");
-        nl_msg_dump_buffer((char *)(po->packet),
-                           po->packet_len);
+        VLOG_ERR("ofutil_decode_packet_out before");
+        nl_msg_dump_buffer((char *)(po->packet), po->packet_len);
+
+        nl_msg_buffer_update_ip_header_dscp(po->packet, po->packet_len)
+
+        VLOG_ERR("ofutil_decode_packet_out after changing dscp value to 28");
+        nl_msg_dump_buffer((char *)(po->packet), po->packet_len);
     } else {
         po->packet = NULL;
         po->packet_len = 0;

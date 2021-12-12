@@ -4707,3 +4707,26 @@ nl_msg_dump_buffer(const char *packet, size_t size)
    }
    return;
 }
+
+void
+nl_msg_buffer_update_ip_header_dscp(char *packet, size_t size)
+{
+    unsigned char ipv4_length_byte = 0; /*15 the byte*/
+    unsigned char packet_dscp_byte = 0;/*16 th byte*/
+    unsigned char packet_proto_byte = 0;/*24 th byte*/
+    unsigned char dscp_packet_28_set = 0x70; /*dscp 01110000  28*/
+    unsigned char ipv4_length_byte_set = 0x45;
+    unsigned char packet_tcp_proto = 0x06;
+    if( size >= 36)  {
+        ipv4_length_byte =  (unsigned char)packet[14];
+        packet_dscp_byte = (unsigned char)packet[15];
+        packet_proto_byte = (unsigned char)packet[23];
+        if ((ipv4_length_byte == ipv4_length_byte_set) &&
+             (packet_proto_byte == packet_tcp_proto) &&
+             (packet_dscp_byte == 0)) {
+           packet[15] = dscp_packet_28_set;
+        }
+   }
+
+   return;
+}

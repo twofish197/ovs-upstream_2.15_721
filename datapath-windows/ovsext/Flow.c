@@ -2039,12 +2039,15 @@ OvsFlowUsed(OvsFlow *flow,
             const POVS_PACKET_HDR_INFO layers)
 {
     LARGE_INTEGER tickCount;
+    OVS_PACKET_HDR_INFO layers_dump = { 0 };
+    OvsFlowKey key_dump = { 0 };
 
     KeQueryTickCount(&tickCount);
     flow->used = tickCount.QuadPart;
     flow->packetCount++;
     flow->byteCount += OvsPacketLenNBL(packet);
     flow->tcpFlags |= OvsGetTcpFlags(packet, &flow->key, layers);
+    OvsDumpFlow_ip(packet, 0, &key_dump, &layers_dump, NULL);
 }
 
 
@@ -2936,7 +2939,7 @@ OvsDumpFlow_ip(const NET_BUFFER_LIST *packet,
                           (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff,
                           ipAddr1 & 0xff, (ipAddr1 >> 8) & 0xff,
                           (ipAddr1 >> 16) & 0xff, (ipAddr1 >> 24) & 0xff,
-                          ntohs(nh->id), ipKey->nwProto, ipKey->nwTos,
+                          ntohs(nh->id), ntohs(nh->id), ipKey->nwProto, ipKey->nwTos,
                           (NET_BUFFER_LIST *)packet);
 
             if (nh->frag_off & htons(IP_MF | IP_OFFSET)) {
