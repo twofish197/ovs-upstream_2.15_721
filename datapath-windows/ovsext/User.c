@@ -344,8 +344,6 @@ OvsNlExecuteCmdHandler(POVS_USER_PARAMS_CONTEXT usrParamsCtx,
 
     _MapNlAttrToOvsPktExec(nlMsgHdr, nlAttrs, keyAttrs, &execute);
 
-    OvsDumpFlow_buffer(execute.packetBuf, execute.packetLen);
-
     status = OvsExecuteDpIoctl(&execute);
 
     /* Default reply that we want to send */

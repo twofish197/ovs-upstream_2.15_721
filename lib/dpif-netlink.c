@@ -1825,10 +1825,6 @@ dpif_netlink_encode_execute(int dp_ifindex, const struct dpif_execute *d_exec,
                       dp_packet_data(d_exec->packet),
                       dp_packet_size(d_exec->packet));
 
-    VLOG_ERR("dpif_netlink_encode_execute");
-    nl_msg_dump_buffer((char *)dp_packet_data(d_exec->packet),
-                       dp_packet_size(d_exec->packet));
-
     key_ofs = nl_msg_start_nested(buf, OVS_PACKET_ATTR_KEY);
     odp_key_from_dp_packet(buf, d_exec->packet);
     nl_msg_end_nested(buf, key_ofs);

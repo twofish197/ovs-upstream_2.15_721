@@ -1207,7 +1207,14 @@ OvsExecuteConntrackAction(OvsForwardingContext *fwdCtx,
                            commit, force, zone, mark, labels, helper, &natActionInfo,
                            postUpdateEvent);
 
-    OVS_LOG_INFO("after OvsCtExecute_ dump flow nbl %p", fwdCtx->curNbl);
+    if (mark) {
+          OVS_LOG_INFO("before OvsCtExecute_ dump flow input mark mask %u  ct-mark value %u, nbl %p", mark->mask, mark->value,
+                       fwdCtx->curNbl);
+          OVS_LOG_INFO("after OvsCtExecute_ entry flow key ct-mark %u, nbl %p", key->ct.mark,
+                       fwdCtx->curNbl);
+    } else {
+          OVS_LOG_INFO("after OvsCtExecute_ no CT mark got, nbl %p", fwdCtx->curNbl);
+    }
     status1 = OvsDumpFlow_ip(fwdCtx->curNbl, 0, &key_dump, &layers_dump, NULL);
     return status;
 }
