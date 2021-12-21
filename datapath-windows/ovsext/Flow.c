@@ -2039,8 +2039,6 @@ OvsFlowUsed(OvsFlow *flow,
             const POVS_PACKET_HDR_INFO layers)
 {
     LARGE_INTEGER tickCount;
-    OVS_PACKET_HDR_INFO layers_dump = { 0 };
-    OvsFlowKey key_dump = { 0 };
 
     KeQueryTickCount(&tickCount);
     flow->used = tickCount.QuadPart;
