@@ -957,6 +957,8 @@ OvsCtExecute_(OvsForwardingContext *fwdCtx,
 
     /* Delete entry in reverse direction if 'force' is specified */
     if (force && ctx.reply && entry) {
+        OVS_LOG_INFO("in OvsCtExecute_ entry will be deleted entry->key.zone %u, ct-mark %u, entry %p, nbl %p",
+                     entry->key.zone, entry->mark, entry, fwdCtx->curNbl);
         UINT32 bucketIdx = ctx.hash & CT_HASH_TABLE_MASK;
         NdisAcquireRWLockWrite(ovsCtBucketLock[bucketIdx], &lockStateTable, 0);
         OvsCtEntryDelete(entry, TRUE);
@@ -976,8 +978,10 @@ OvsCtExecute_(OvsForwardingContext *fwdCtx,
         entry = OvsProcessConntrackEntry(fwdCtx, layers, &ctx, key,
                                          zone, natInfo, commit, currentTime,
                                          &entryCreated);
-        OVS_LOG_INFO("in OvsCtExecute_ entry is found entry->key.zone %u, ct-mark %u, nbl %p",
-                     entry->key.zone, entry->mark, fwdCtx->curNbl);
+        if (entry) {
+           OVS_LOG_INFO("in OvsCtExecute_ entry is found entry->key.zone %u, ct-mark %u, entry %p, nbl %p",
+                        entry->key.zone, entry->mark, entry, fwdCtx->curNbl);
+        }
     } else {
         if (commit && (ctTotalEntries >= CT_MAX_ENTRIES ||
             zoneInfo[ctx.key.zone].entries >= zoneInfo[ctx.key.zone].limit)) {
@@ -997,8 +1001,10 @@ OvsCtExecute_(OvsForwardingContext *fwdCtx,
                                  key, natInfo, commit, currentTime,
                                  &entryCreated);
 
-        OVS_LOG_INFO("in OvsCtExecute_ entry is not found entry->key.zone %u, ct-mark %u, nbl %p",
-                     entry->key.zone, entry->mark, fwdCtx->curNbl);
+        if (entry) {
+            OVS_LOG_INFO("in OvsCtExecute_ entry not found entry->key.zone %u, ct-mark %u, entry %p, nbl %p",
+                          entry->key.zone, entry->mark, entry, fwdCtx->curNbl);
+       }
     }
 
     if (entry == NULL) {
@@ -1019,8 +1025,8 @@ OvsCtExecute_(OvsForwardingContext *fwdCtx,
                      key, ctx.reply);
     }
 
-   OVS_LOG_INFO("in OvsCtExecute_ after nat entry->key.zone %u, ct-mark %u, nbl %p",
-                 entry->key.zone, entry->mark, fwdCtx->curNbl);
+   OVS_LOG_INFO("in OvsCtExecute_ after nat entry->key.zone %u, ct-mark %u, entry %p, nbl %p",
+                 entry->key.zone, entry->mark, entry, fwdCtx->curNbl);
 
     OvsCtSetMarkLabel(key, entry, mark, labels, &triggerUpdateEvent);
 
@@ -1217,8 +1223,10 @@ OvsExecuteConntrackAction(OvsForwardingContext *fwdCtx,
     if (mark) {
           OVS_LOG_INFO("before OvsCtExecute_ ct-zone %u ct-mark mask %u ct-mark value %u, nbl %p",
                        zone, mark->mask, mark->value, fwdCtx->curNbl);
-          OVS_LOG_INFO("after OvsCtExecute_ entry flow key ct-zone %u ct-mark %u, nbl %p",
-                       key->ct.zone, key->ct.mark, fwdCtx->curNbl);
+          if (key) {
+              OVS_LOG_INFO("after OvsCtExecute_ entry flow key ct-zone %u ct-mark %u, nbl %p",
+                            key->ct.zone, key->ct.mark, fwdCtx->curNbl);
+          }
     } else {
           OVS_LOG_INFO("after OvsCtExecute_ no CT mark got, nbl %p", fwdCtx->curNbl);
     }
