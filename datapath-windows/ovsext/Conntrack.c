@@ -976,8 +976,8 @@ OvsCtExecute_(OvsForwardingContext *fwdCtx,
         entry = OvsProcessConntrackEntry(fwdCtx, layers, &ctx, key,
                                          zone, natInfo, commit, currentTime,
                                          &entryCreated);
-        OVS_LOG_INFO("in OvsCtExecute_ entry is found entry->ct-mark %u, nbl %p",
-                     entry->mark, fwdCtx->curNbl);
+        OVS_LOG_INFO("in OvsCtExecute_ entry is found entry->key.zone %u, ct-mark %u, nbl %p",
+                     entry->key.zone, entry->mark, fwdCtx->curNbl);
     } else {
         if (commit && (ctTotalEntries >= CT_MAX_ENTRIES ||
             zoneInfo[ctx.key.zone].entries >= zoneInfo[ctx.key.zone].limit)) {
@@ -997,8 +997,8 @@ OvsCtExecute_(OvsForwardingContext *fwdCtx,
                                  key, natInfo, commit, currentTime,
                                  &entryCreated);
 
-        OVS_LOG_INFO("in OvsCtExecute_ entry is not found entry->ct-mark %u, nbl %p",
-                     entry->mark, fwdCtx->curNbl);
+        OVS_LOG_INFO("in OvsCtExecute_ entry is not found entry->key.zone %u, ct-mark %u, nbl %p",
+                     entry->key.zone, entry->mark, fwdCtx->curNbl);
     }
 
     if (entry == NULL) {
@@ -1019,8 +1019,8 @@ OvsCtExecute_(OvsForwardingContext *fwdCtx,
                      key, ctx.reply);
     }
 
-   OVS_LOG_INFO("in OvsCtExecute_ after nat entry->ct-mark %u, nbl %p",
-                 entry->mark, fwdCtx->curNbl);
+   OVS_LOG_INFO("in OvsCtExecute_ after nat entry->key.zone %u, ct-mark %u, nbl %p",
+                 entry->key.zone, entry->mark, fwdCtx->curNbl);
 
     OvsCtSetMarkLabel(key, entry, mark, labels, &triggerUpdateEvent);
 
