@@ -249,4 +249,5 @@ NDIS_STATUS OvsCtHandleFtp(PNET_BUFFER_LIST curNbl,
                            UINT64 currentTime,
                            POVS_CT_ENTRY entry,
                            BOOLEAN request);
+int ovs_dump_ct_entry_key(POVS_CT_ENTRY entry, OvsForwardingContext *fwdCtx);
 #endif /* __OVS_CONNTRACK_H_ */

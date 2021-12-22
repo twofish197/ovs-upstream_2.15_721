@@ -568,6 +568,9 @@ OvsCtLookup(OvsConntrackKeyLookupCtx *ctx)
     POVS_CT_ENTRY found = NULL;
     LOCK_STATE_EX lockStateTable;
     UINT32 bucketIdx;
+    OVS_CT_KEY entry_revkey;
+    UINT32 ipAddr_src = 0, ipAddr_dst = 0;
+    uint16_t port_src = 0, port_dst = 0;
 
     if (!ctTotalEntries) {
         return found;
@@ -580,6 +583,7 @@ OvsCtLookup(OvsConntrackKeyLookupCtx *ctx)
      */
     OVS_CT_KEY revCtxKey = ctx->key;
     OvsCtKeyReverse(&revCtxKey);
+
 
     KIRQL irql = KeGetCurrentIrql();
     bucketIdx = ctx->hash & CT_HASH_TABLE_MASK;
@@ -603,6 +607,30 @@ OvsCtLookup(OvsConntrackKeyLookupCtx *ctx)
         if (!found && OvsCtEndpointsAreSame(revCtxKey, entry->key)) {
             found = entry;
             reply = TRUE;
+        }
+
+        if (!found) {
+           if (!OvsCtEndpointsAreSame(&entry->key, &entry->rev_key)) {
+                  memset(&entry_revkey, 0, sizeof(OVS_CT_KEY));
+                  memcpy(&entry_revkey, &entry->rev_key,
+                         sizeof(OVS_CT_KEY));
+                  OvsCtKeyReverse(&entry_revkey);
+                 if (OvsCtEndpointsAreSame(ctx->key, &entry_revkey)) {
+                     ipAddr_src = entry->key.src.addr.ipv4_aligned;
+                     ipAddr_dst = entry->key.dst.addr.ipv4_aligned;
+                     port_src = entry->key.src.port;
+                     port_dst = entry->key.dst.port;
+
+                     OVS_LOG_INFO("ct.key src: %d.%d.%d.%d:%u, dst: %d.%d.%d.%d:%u, entry %p",
+                                  ipAddr_src & 0xff, (ipAddr_src >> 8) & 0xff,
+                                  (ipAddr_src >> 16) & 0xff, (ipAddr_src >> 24) & 0xff, port_src,
+                                  ipAddr_dst & 0xff, (ipAddr_dst >> 8) & 0xff,
+                                  (ipAddr_dst >> 16) & 0xff, (ipAddr_dst >> 24) & 0xff, port_dst,
+                                  entry);
+                     OVS_LOG_INFO("in OvsCtExecute_ found the entry entry->key.zone %u, ct-mark %u, entry %p",
+                                   entry->key.zone, entry->mark, entry);
+                }
+            }
         }
 
         if (found) {
@@ -1023,6 +1051,7 @@ OvsCtExecute_(OvsForwardingContext *fwdCtx,
     if (natInfo->natAction != NAT_ACTION_NONE) {
         OvsNatPacket(fwdCtx, entry, entry->natInfo.natAction,
                      key, ctx.reply);
+        ovs_dump_ct_entry_key(entry, fwdCtx);
     }
 
    OVS_LOG_INFO("in OvsCtExecute_ after nat entry->key.zone %u, ct-mark %u, entry %p, nbl %p",
@@ -2069,5 +2098,34 @@ OvsCtLimitHandler(POVS_USER_PARAMS_CONTEXT usrParamsCtx,
 
     return status;
 }
+int ovs_dump_ct_entry_key(POVS_CT_ENTRY entry, OvsForwardingContext *fwdCtx)
+{
+    UINT32 ipAddr_src = 0, ipAddr_dst = 0;
+    uint16_t port_src = 0, port_dst = 0;
 
+    if (!entry ) return 0;
+
+    ipAddr_src = entry->key.src.addr.ipv4_aligned;
+    ipAddr_dst = entry->key.dst.addr.ipv4_aligned;
+    port_src = entry->key.src.port;
+    port_dst = entry->key.dst.port;
+
+    OVS_LOG_INFO("ct.key src: %d.%d.%d.%d:%u, dst: %d.%d.%d.%d:%u, entry %p, nbl %p",
+                 ipAddr_src & 0xff, (ipAddr_src >> 8) & 0xff,
+                 (ipAddr_src >> 16) & 0xff, (ipAddr_src >> 24) & 0xff, port_src,
+                 ipAddr_dst & 0xff, (ipAddr_dst >> 8) & 0xff,
+                 (ipAddr_dst >> 16) & 0xff, (ipAddr_dst >> 24) & 0xff, port_dst,
+                 entry, fwdCtx->curNbl);
+    ipAddr_src = entry->rev_key.src.addr.ipv4_aligned;
+    ipAddr_dst = entry->rev_key.dst.addr.ipv4_aligned;
+    port_src = entry->rev_key.src.port;
+    port_dst = entry->rev_key.dst.port;
+    OVS_LOG_INFO("ct.rev_key src: %d.%d.%d.%d:%u, dst: %d.%d.%d.%d:%u, entry %p, nbl %p",
+                 ipAddr_src & 0xff, (ipAddr_src >> 8) & 0xff,
+                 (ipAddr_src >> 16) & 0xff, (ipAddr_src >> 24) & 0xff, port_src,
+                 ipAddr_dst & 0xff, (ipAddr_dst >> 8) & 0xff,
+                 (ipAddr_dst >> 16) & 0xff, (ipAddr_dst >> 24) & 0xff, port_dst,
+                  entry, fwdCtx->curNbl);
+   return 0;
+}
 #pragma warning(pop)
