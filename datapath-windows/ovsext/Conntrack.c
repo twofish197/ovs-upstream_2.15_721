@@ -610,12 +610,12 @@ OvsCtLookup(OvsConntrackKeyLookupCtx *ctx)
         }
 
         if (!found) {
-           if (!OvsCtEndpointsAreSame(&entry->key, &entry->rev_key)) {
-                  memset(&entry_revkey, 0, sizeof(OVS_CT_KEY));
-                  memcpy(&entry_revkey, &entry->rev_key,
-                         sizeof(OVS_CT_KEY));
-                  OvsCtKeyReverse(&entry_revkey);
-                 if (OvsCtEndpointsAreSame(ctx->key, &entry_revkey)) {
+           memset(&entry_revkey, 0, sizeof(OVS_CT_KEY));
+           memcpy(&entry_revkey, &entry->rev_key,
+                  sizeof(OVS_CT_KEY));
+           OvsCtKeyReverse(&entry_revkey);
+           if (!OvsCtEndpointsAreSame(entry->key, entry_revkey)) {
+                 if (OvsCtEndpointsAreSame(ctx->key, entry_revkey)) {
                      ipAddr_src = entry->key.src.addr.ipv4_aligned;
                      ipAddr_dst = entry->key.dst.addr.ipv4_aligned;
                      port_src = entry->key.src.port;
