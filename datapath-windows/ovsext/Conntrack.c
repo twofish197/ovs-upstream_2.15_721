@@ -568,7 +568,6 @@ OvsCtLookup(OvsConntrackKeyLookupCtx *ctx)
     POVS_CT_ENTRY found = NULL;
     LOCK_STATE_EX lockStateTable;
     UINT32 bucketIdx;
-    OVS_CT_KEY entry_revkey;
     UINT32 ipAddr_src = 0, ipAddr_dst = 0;
     uint16_t port_src = 0, port_dst = 0;
 
@@ -619,38 +618,20 @@ OvsCtLookup(OvsConntrackKeyLookupCtx *ctx)
             reply = TRUE;
         }
         ovs_dump_ct_entry_key(entry, NULL);
+
+        OVS_LOG_INFO("found %d, entry %p", found, entry);
+
         if (!found && OvsCtEndpointsAreSame(revCtxKey, entry->rev_key)) {
            OVS_LOG_INFO("in ovsctexecute_ found the entry entry->key.zone %u, ct-mark %u, entry %p",
                         entry->key.zone, entry->mark, entry);
-           continue;
-        }
-        if (!found) {
-           memset(&entry_revkey, 0, sizeof(OVS_CT_KEY));
-           memcpy(&entry_revkey, &entry->rev_key,
-                  sizeof(OVS_CT_KEY));
-           OvsCtKeyReverse(&entry_revkey);
-           if (!OvsCtEndpointsAreSame(entry->key, entry_revkey)) {
-                 if (OvsCtEndpointsAreSame(ctx->key, entry_revkey)) {
-                     ipAddr_src = entry->key.src.addr.ipv4_aligned;
-                     ipAddr_dst = entry->key.dst.addr.ipv4_aligned;
-                     port_src = ntohs(entry->key.src.port);
-                     port_dst = ntohs(entry->key.dst.port);
-
-                     OVS_LOG_INFO("ct.key src: %d.%d.%d.%d:%u, dst: %d.%d.%d.%d:%u, entry %p",
-                                  ipAddr_src & 0xff, (ipAddr_src >> 8) & 0xff,
-                                  (ipAddr_src >> 16) & 0xff, (ipAddr_src >> 24) & 0xff, port_src,
-                                  ipAddr_dst & 0xff, (ipAddr_dst >> 8) & 0xff,
-                                  (ipAddr_dst >> 16) & 0xff, (ipAddr_dst >> 24) & 0xff, port_dst,
-                                  entry);
-                     OVS_LOG_INFO("in ovsctexecute_ found the entry entry->key.zone %u, ct-mark %u, entry %p",
-                                  entry->key.zone, entry->mark, entry);
-                }
-            }
+           break;
         }
 
         if (found) {
             if (OvsCtEntryExpired(found)) {
                 found = NULL;
+                OVS_LOG_INFO("entry expired ;found is null, entry %p",
+                              entry);
             } else {
                 ctx->reply = reply;
             }
@@ -829,12 +810,16 @@ OvsProcessConntrackEntry(OvsForwardingContext *fwdCtx,
             OvsCtEntryDelete(ctx->entry, TRUE);
             NdisReleaseRWLock(ovsCtBucketLock[bucketIdx], &lockStateTable);
             ctx->entry = NULL;
+
             entry = OvsCtEntryCreate(fwdCtx, key->ipKey.nwProto, layers,
                                      ctx, key, natInfo, commit, currentTime,
                                      entryCreated);
             if (!entry) {
                 return NULL;
             }
+
+           OVS_LOG_INFO("CT_UPDATE_NEW try create new, entry %p, nbl %p",
+                        entry, fwdCtx->curNbl);
             break;
         case CT_UPDATE_VALID_NEW:
             state |= OVS_CS_F_NEW;
@@ -1042,12 +1027,13 @@ OvsCtExecute_(OvsForwardingContext *fwdCtx,
                            zoneInfo[ctx.key.zone].entries, ctTotalEntries);
             return NDIS_STATUS_RESOURCES;
         }
+
+        OVS_LOG_INFO("in OvsCtExecute_ entry not found try create one, nbl %p", fwdCtx->curNbl);
         /* If no matching entry was found, create one and add New state */
         entry = OvsCtEntryCreate(fwdCtx, key->ipKey.nwProto,
                                  layers, &ctx,
                                  key, natInfo, commit, currentTime,
                                  &entryCreated);
-
         if (entry) {
             OVS_LOG_INFO("in OvsCtExecute_ entry not found entry->key.zone %u, ct-mark %u, entry %p, nbl %p",
                           entry->key.zone, entry->mark, entry, fwdCtx->curNbl);
@@ -1055,6 +1041,8 @@ OvsCtExecute_(OvsForwardingContext *fwdCtx,
     }
 
     if (entry == NULL) {
+       OVS_LOG_INFO("in OvsCtExecute_ entry is null, nbl %p",
+                    fwdCtx->curNbl);
         return status;
     }
 
