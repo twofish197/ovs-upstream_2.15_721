@@ -570,6 +570,7 @@ OvsCtLookup(OvsConntrackKeyLookupCtx *ctx)
     UINT32 bucketIdx;
     UINT32 ipAddr_src = 0, ipAddr_dst = 0;
     uint16_t port_src = 0, port_dst = 0;
+    uint16_t e_i = 0;
 
     if (!ctTotalEntries) {
         return found;
@@ -600,11 +601,13 @@ OvsCtLookup(OvsConntrackKeyLookupCtx *ctx)
     LIST_FORALL(&ovsConntrackTable[bucketIdx], link) {
         entry = CONTAINING_RECORD(link, OVS_CT_ENTRY, link);
         OVS_ACQUIRE_SPIN_LOCK(&(entry->lock), irql);
-
+        e_i++;
         if ((ctx->key.dl_type != entry->key.dl_type) ||
             (ctx->key.nw_proto != entry->key.nw_proto) ||
             (ctx->key.zone != entry->key.zone)) {
             OVS_RELEASE_SPIN_LOCK(&(entry->lock), irql);
+            OVS_LOG_INFO("not match , e_i %u, entry %p", e_i, entry);
+            ovs_dump_ct_entry_key(entry, NULL);
             continue;
         }
 
@@ -619,7 +622,7 @@ OvsCtLookup(OvsConntrackKeyLookupCtx *ctx)
         }
         ovs_dump_ct_entry_key(entry, NULL);
 
-        OVS_LOG_INFO("found %d, entry %p", found, entry);
+        OVS_LOG_INFO("found %d, e_i %u, entry %p", found, e_i, entry);
 
         if (!found && OvsCtEndpointsAreSame(revCtxKey, entry->rev_key)) {
            OVS_LOG_INFO("in ovsctexecute_ found the entry entry->key.zone %u, ct-mark %u, entry %p",
@@ -2120,12 +2123,12 @@ int ovs_dump_ct_entry_key(POVS_CT_ENTRY entry, OvsForwardingContext *fwdCtx)
     port_src = ntohs(entry->key.src.port);
     port_dst = ntohs(entry->key.dst.port);
 
-    OVS_LOG_INFO("ct.key src: %d.%d.%d.%d:%u, dst: %d.%d.%d.%d:%u, entry %p, nbl %p",
+    OVS_LOG_INFO("ct.key src: %d.%d.%d.%d:%u, dst: %d.%d.%d.%d:%u, dl %u, zone %u, nw_pro %d, mark %u, entry %p, nbl %p",
                  ipAddr_src & 0xff, (ipAddr_src >> 8) & 0xff,
                  (ipAddr_src >> 16) & 0xff, (ipAddr_src >> 24) & 0xff, port_src,
                  ipAddr_dst & 0xff, (ipAddr_dst >> 8) & 0xff,
                  (ipAddr_dst >> 16) & 0xff, (ipAddr_dst >> 24) & 0xff, port_dst,
-                 entry, curNbl);
+                 entry->key.dl_type, entry->key.zone, entry->key.nw_proto, entry->mark, entry, curNbl);
     ipAddr_src = entry->rev_key.src.addr.ipv4_aligned;
     ipAddr_dst = entry->rev_key.dst.addr.ipv4_aligned;
     port_src = ntohs(entry->rev_key.src.port);
