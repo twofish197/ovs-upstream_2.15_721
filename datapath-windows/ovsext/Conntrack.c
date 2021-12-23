@@ -620,7 +620,7 @@ OvsCtLookup(OvsConntrackKeyLookupCtx *ctx)
         }
         ovs_dump_ct_entry_key(entry, NULL);
         if (!found && OvsCtEndpointsAreSame(revCtxKey, entry->rev_key)) {
-           ovs_log_info("in ovsctexecute_ found the entry entry->key.zone %u, ct-mark %u, entry %p",
+           OVS_LOG_INFO("in ovsctexecute_ found the entry entry->key.zone %u, ct-mark %u, entry %p",
                         entry->key.zone, entry->mark, entry);
            continue;
         }
@@ -642,8 +642,8 @@ OvsCtLookup(OvsConntrackKeyLookupCtx *ctx)
                                   ipAddr_dst & 0xff, (ipAddr_dst >> 8) & 0xff,
                                   (ipAddr_dst >> 16) & 0xff, (ipAddr_dst >> 24) & 0xff, port_dst,
                                   entry);
-                     ovs_log_info("in ovsctexecute_ found the entry entry->key.zone %u, ct-mark %u, entry %p",
-                                   entry->key.zone, entry->mark, entry);
+                     OVS_LOG_INFO("in ovsctexecute_ found the entry entry->key.zone %u, ct-mark %u, entry %p",
+                                  entry->key.zone, entry->mark, entry);
                 }
             }
         }
