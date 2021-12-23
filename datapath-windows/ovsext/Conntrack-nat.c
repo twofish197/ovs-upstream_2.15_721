@@ -365,6 +365,8 @@ OvsNatTranslateCtEntry(OVS_CT_ENTRY *entry)
                    sizeof natEntry->value);
             natEntry->ctEntry = entry;
             OvsNatAddEntry(natEntry);
+            OVS_LOG_INFO("add nat entry %p, ct_entry %p",
+                         natEntry, entry);
             return TRUE;
         } else if (!allPortsTried) {
             if (minPort == maxPort) {

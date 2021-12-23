@@ -2931,13 +2931,6 @@ OvsDumpFlow_ip(const NET_BUFFER_LIST *packet,
             ipAddr1 = ipKey->nwDst;
 
             ipKey->nwTos = nh->tos;
-            OVS_LOG_ERROR("src: %d.%d.%d.%d,dst: %d.%d.%d.%d,ipid %u hex:%x,Proto %u,nbl %p",
-                          ipAddr & 0xff, (ipAddr >> 8) & 0xff,
-                          (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff,
-                          ipAddr1 & 0xff, (ipAddr1 >> 8) & 0xff,
-                          (ipAddr1 >> 16) & 0xff, (ipAddr1 >> 24) & 0xff,
-                          ntohs(nh->id), ntohs(nh->id), ipKey->nwProto,
-                          (NET_BUFFER_LIST *)packet);
 
             if (nh->frag_off & htons(IP_MF | IP_OFFSET)) {
                 ipKey->nwFrag = OVS_FRAG_TYPE_FIRST;
@@ -2955,6 +2948,18 @@ OvsDumpFlow_ip(const NET_BUFFER_LIST *packet,
 
             if (!(nh->frag_off & htons(IP_OFFSET))) {
                  if (ipKey->nwProto == SOCKET_IPPROTO_TCP) {
+                    OvsParseTcp(packet, NULL, layers);
+                    TCPHdr tcpStorage;
+                    const TCPHdr *tcp = OvsGetTcp(packet, layers->l4Offset, &tcpStorage);
+                    if (tcp) {
+                         OVS_LOG_ERROR("src: %d.%d.%d.%d:%u,dst: %d.%d.%d.%d:%u,ipid %u hex:%x,Proto %u,nbl %p",
+                                        ipAddr & 0xff, (ipAddr >> 8) & 0xff,
+                                        (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff, ntohs(tcp->source),
+                                        ipAddr1 & 0xff, (ipAddr1 >> 8) & 0xff,
+                                        (ipAddr1 >> 16) & 0xff, (ipAddr1 >> 24) & 0xff, ntohs(tcp->dest),
+                                        ntohs(nh->id), ntohs(nh->id), ipKey->nwProto,
+                                        (NET_BUFFER_LIST *)packet);
+                    }
                 } else if (ipKey->nwProto == SOCKET_IPPROTO_UDP) {
                 } else if (ipKey->nwProto == SOCKET_IPPROTO_SCTP) {
                 } else if (ipKey->nwProto == SOCKET_IPPROTO_ICMP) {

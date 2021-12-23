@@ -584,6 +584,16 @@ OvsCtLookup(OvsConntrackKeyLookupCtx *ctx)
     OVS_CT_KEY revCtxKey = ctx->key;
     OvsCtKeyReverse(&revCtxKey);
 
+    ipAddr_src = ctx->key.src.addr.ipv4_aligned;
+    ipAddr_dst = ctx->key.dst.addr.ipv4_aligned;
+    port_src = ntohs(ctx->key.src.port);
+    port_dst = ntohs(ctx->key.dst.port);
+
+    OVS_LOG_INFO("ctx.key src: %d.%d.%d.%d:%u, dst: %d.%d.%d.%d:%u",
+                 ipAddr_src & 0xff, (ipAddr_src >> 8) & 0xff,
+                 (ipAddr_src >> 16) & 0xff, (ipAddr_src >> 24) & 0xff, port_src,
+                 ipAddr_dst & 0xff, (ipAddr_dst >> 8) & 0xff,
+                 (ipAddr_dst >> 16) & 0xff, (ipAddr_dst >> 24) & 0xff, port_dst);
 
     KIRQL irql = KeGetCurrentIrql();
     bucketIdx = ctx->hash & CT_HASH_TABLE_MASK;
@@ -608,7 +618,14 @@ OvsCtLookup(OvsConntrackKeyLookupCtx *ctx)
             found = entry;
             reply = TRUE;
         }
-
+        ovs_dump_ct_entry_key(entry, NULL);
+        if (!found && OvsCtEndpointsAreSame(revCtxKey, entry->rev_key)) {
+            #found = entry;
+            reply = TRUE;
+             ovs_log_info("in ovsctexecute_ found the entry entry->key.zone %u, ct-mark %u, entry %p",
+                           entry->key.zone, entry->mark, entry);
+           continue;
+        }
         if (!found) {
            memset(&entry_revkey, 0, sizeof(OVS_CT_KEY));
            memcpy(&entry_revkey, &entry->rev_key,
@@ -618,8 +635,8 @@ OvsCtLookup(OvsConntrackKeyLookupCtx *ctx)
                  if (OvsCtEndpointsAreSame(ctx->key, entry_revkey)) {
                      ipAddr_src = entry->key.src.addr.ipv4_aligned;
                      ipAddr_dst = entry->key.dst.addr.ipv4_aligned;
-                     port_src = entry->key.src.port;
-                     port_dst = entry->key.dst.port;
+                     port_src = ntohs(entry->key.src.port);
+                     port_dst = ntohs(entry->key.dst.port);
 
                      OVS_LOG_INFO("ct.key src: %d.%d.%d.%d:%u, dst: %d.%d.%d.%d:%u, entry %p",
                                   ipAddr_src & 0xff, (ipAddr_src >> 8) & 0xff,
@@ -627,7 +644,7 @@ OvsCtLookup(OvsConntrackKeyLookupCtx *ctx)
                                   ipAddr_dst & 0xff, (ipAddr_dst >> 8) & 0xff,
                                   (ipAddr_dst >> 16) & 0xff, (ipAddr_dst >> 24) & 0xff, port_dst,
                                   entry);
-                     OVS_LOG_INFO("in OvsCtExecute_ found the entry entry->key.zone %u, ct-mark %u, entry %p",
+                     ovs_log_info("in ovsctexecute_ found the entry entry->key.zone %u, ct-mark %u, entry %p",
                                    entry->key.zone, entry->mark, entry);
                 }
             }
@@ -745,6 +762,10 @@ OvsCtSetupLookupCtx(OvsFlowKey *flowKey,
         /* Translate address first for reverse NAT */
         ctx->key = natEntry->ctEntry->key;
         OvsCtKeyReverse(&ctx->key);
+        OVS_LOG_INFO("found nat entry %p",
+                     natEntry);
+    } else {
+        OVS_LOG_INFO("not found related nat entry");
     }
 
     ctx->hash = OvsCtHashKey(&ctx->key);
@@ -2102,30 +2123,33 @@ int ovs_dump_ct_entry_key(POVS_CT_ENTRY entry, OvsForwardingContext *fwdCtx)
 {
     UINT32 ipAddr_src = 0, ipAddr_dst = 0;
     uint16_t port_src = 0, port_dst = 0;
+    PNET_BUFFER_LIST curNbl =  NULL;
+
+    if (fwdCtx) curNbl = fwdCtx->curNbl;
 
     if (!entry ) return 0;
 
     ipAddr_src = entry->key.src.addr.ipv4_aligned;
     ipAddr_dst = entry->key.dst.addr.ipv4_aligned;
-    port_src = entry->key.src.port;
-    port_dst = entry->key.dst.port;
+    port_src = ntohs(entry->key.src.port);
+    port_dst = ntohs(entry->key.dst.port);
 
     OVS_LOG_INFO("ct.key src: %d.%d.%d.%d:%u, dst: %d.%d.%d.%d:%u, entry %p, nbl %p",
                  ipAddr_src & 0xff, (ipAddr_src >> 8) & 0xff,
                  (ipAddr_src >> 16) & 0xff, (ipAddr_src >> 24) & 0xff, port_src,
                  ipAddr_dst & 0xff, (ipAddr_dst >> 8) & 0xff,
                  (ipAddr_dst >> 16) & 0xff, (ipAddr_dst >> 24) & 0xff, port_dst,
-                 entry, fwdCtx->curNbl);
+                 entry, curNbl);
     ipAddr_src = entry->rev_key.src.addr.ipv4_aligned;
     ipAddr_dst = entry->rev_key.dst.addr.ipv4_aligned;
-    port_src = entry->rev_key.src.port;
-    port_dst = entry->rev_key.dst.port;
+    port_src = ntohs(entry->rev_key.src.port);
+    port_dst = ntohs(entry->rev_key.dst.port);
     OVS_LOG_INFO("ct.rev_key src: %d.%d.%d.%d:%u, dst: %d.%d.%d.%d:%u, entry %p, nbl %p",
                  ipAddr_src & 0xff, (ipAddr_src >> 8) & 0xff,
                  (ipAddr_src >> 16) & 0xff, (ipAddr_src >> 24) & 0xff, port_src,
                  ipAddr_dst & 0xff, (ipAddr_dst >> 8) & 0xff,
                  (ipAddr_dst >> 16) & 0xff, (ipAddr_dst >> 24) & 0xff, port_dst,
-                  entry, fwdCtx->curNbl);
+                  entry, curNbl);
    return 0;
 }
 #pragma warning(pop)
