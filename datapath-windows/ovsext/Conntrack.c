@@ -620,10 +620,8 @@ OvsCtLookup(OvsConntrackKeyLookupCtx *ctx)
         }
         ovs_dump_ct_entry_key(entry, NULL);
         if (!found && OvsCtEndpointsAreSame(revCtxKey, entry->rev_key)) {
-            #found = entry;
-            reply = TRUE;
-             ovs_log_info("in ovsctexecute_ found the entry entry->key.zone %u, ct-mark %u, entry %p",
-                           entry->key.zone, entry->mark, entry);
+           ovs_log_info("in ovsctexecute_ found the entry entry->key.zone %u, ct-mark %u, entry %p",
+                        entry->key.zone, entry->mark, entry);
            continue;
         }
         if (!found) {
