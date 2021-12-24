@@ -622,7 +622,7 @@ OvsCtLookup(OvsConntrackKeyLookupCtx *ctx)
         }
         ovs_dump_ct_entry_key(entry, NULL);
 
-        OVS_LOG_INFO("found %d, e_i %u, entry %p", found, e_i, entry);
+        OVS_LOG_INFO("found %p, e_i %u, entry %p", found, e_i, entry);
 
         if (!found && OvsCtEndpointsAreSame(revCtxKey, entry->rev_key)) {
            OVS_LOG_INFO("in ovsctexecute_ found the entry entry->key.zone %u, ct-mark %u, entry %p",
@@ -675,7 +675,8 @@ OvsCtSetupLookupCtx(OvsFlowKey *flowKey,
                     UINT16 zone,
                     OvsConntrackKeyLookupCtx *ctx,
                     PNET_BUFFER_LIST curNbl,
-                    UINT32 l4Offset)
+                    UINT32 l4Offset,
+                    OVS_PACKET_HDR_INFO *layers)
 {
     const OVS_NAT_ENTRY *natEntry;
     OVS_CT_KEY revCtxKey = {0};
@@ -753,19 +754,23 @@ OvsCtSetupLookupCtx(OvsFlowKey *flowKey,
         OVS_LOG_INFO("not found related nat entry");
         /*if c2s direction TCP not found search again*/
         if (flowKey->ipKey.nwProto == IPPROTO_TCP) {
-           revCtxKey = ctx->key;
-           OvsCtKeyReverse(&revCtxKey);
-           natEntry = OvsNatLookup(&revCtxkey, TRUE);
+           int c2s = 0;
+           c2s = OvsGetTcpHeader(curNbl, layers);
+           if (c2s) {
+              revCtxKey = ctx->key;
+              OvsCtKeyReverse(&revCtxKey);
+              natEntry = OvsNatLookup(&revCtxkey, TRUE);
 
-           if (natEntry) {
-               /* Translate address first for reverse NAT */
-               ctx->key = natEntry->ctEntry->key;
-               OVS_LOG_INFO("rev key found nat entry %p",
-                            natEntry);
-               ovs_dump_nat_entry_key(natEntry);
-            } else {
-               OVS_LOG_INFO("still not found related nat entry");
-            }
+              if (natEntry) {
+                  /* Translate address first for reverse NAT */
+                  ctx->key = natEntry->ctEntry->key;
+                  OVS_LOG_INFO("rev key found nat entry %p",
+                              natEntry);
+                  ovs_dump_nat_entry_key(natEntry);
+               } else {
+                  OVS_LOG_INFO("still not found related nat entry");
+               }
+           }
         }
     }
 
@@ -1004,7 +1009,7 @@ OvsCtExecute_(OvsForwardingContext *fwdCtx,
     NdisGetCurrentSystemTime((LARGE_INTEGER *) &currentTime);
 
     /* Retrieve the Conntrack Key related fields from packet */
-    OvsCtSetupLookupCtx(key, zone, &ctx, curNbl, layers->l4Offset);
+    OvsCtSetupLookupCtx(key, zone, &ctx, curNbl, layers->l4Offset, layers);
 
     /* Lookup Conntrack entries for a matching entry */
     entry = OvsCtLookup(&ctx);
@@ -2189,5 +2194,19 @@ int ovs_dump_ct_entry_key(POVS_CT_ENTRY entry, OvsForwardingContext *fwdCtx)
                  (ipAddr_dst >> 16) & 0xff, (ipAddr_dst >> 24) & 0xff, port_dst,
                   entry, curNbl);
    return 0;
+}
+
+int 
+OvsGetTcpHeader(PNET_BUFFER_LIST nbl,
+                OVS_PACKET_HDR_INFO *layers)
+{
+  UINT32 tcpPayloadLen;
+  TCPHdr tcpStorage;
+  const TCPHdr *tcp = NULL;
+  UINT16 tcp_flags = 0; 
+  tcp = OvsGetTcpHeader(curNbl, layers, &tcpStorage, &tcpPayloadLen);
+
+  tcp_flags = ntohs(tcp->flags);
+  return OvsCheckTcpC2S(tcp_flags);
 }
 #pragma warning(pop)

@@ -577,3 +577,12 @@ done:
     NlMsgEndNested(nlBuf, offset);
     return status;
 }
+
+int OvsCheckTcpC2S(UINT16 tcp_flags)
+{
+   int    c2s = 0;
+   if ((tcp_flags & (TCP_SYN|TCP_ACK)) == TCP_SYN) {
+       c2s = 1;
+   }
+   return c2s;
+}
