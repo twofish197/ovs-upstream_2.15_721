@@ -759,7 +759,7 @@ OvsCtSetupLookupCtx(OvsFlowKey *flowKey,
            if (c2s) {
               revCtxKey = ctx->key;
               OvsCtKeyReverse(&revCtxKey);
-              natEntry = OvsNatLookup(&revCtxkey, TRUE);
+              natEntry = OvsNatLookup(&revCtxKey, TRUE);
 
               if (natEntry) {
                   /* Translate address first for reverse NAT */
@@ -2197,7 +2197,7 @@ int ovs_dump_ct_entry_key(POVS_CT_ENTRY entry, OvsForwardingContext *fwdCtx)
 }
 
 int 
-OvsIsTcpC2S(PNET_BUFFER_LIST nbl, OVS_PACKET_HDR_INFO *layers)
+OvsIsTcpC2S(PNET_BUFFER_LIST curNbl, OVS_PACKET_HDR_INFO *layers)
 {
     UINT32 tcpPayloadLen;
     TCPHdr tcpStorage;

@@ -253,5 +253,5 @@ int ovs_dump_ct_entry_key(POVS_CT_ENTRY entry, OvsForwardingContext *fwdCtx);
 
 int OvsCheckTcpC2S(UINT16 tcp_flags);
 int 
-OvsIsTcpC2S(PNET_BUFFER_LIST nbl, OVS_PACKET_HDR_INFO *layers);
+OvsIsTcpC2S(PNET_BUFFER_LIST curNbl, OVS_PACKET_HDR_INFO *layers);
 #endif /* __OVS_CONNTRACK_H_ */
