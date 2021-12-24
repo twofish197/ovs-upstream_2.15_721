@@ -678,9 +678,12 @@ OvsCtSetupLookupCtx(OvsFlowKey *flowKey,
                     UINT32 l4Offset)
 {
     const OVS_NAT_ENTRY *natEntry;
+    OVS_CT_KEY revCtxKey = {0};
+
     ctx->key.zone = zone;
     ctx->key.dl_type = flowKey->l2.dlType;
     ctx->related = FALSE;
+
 
     /* Extract L3 and L4*/
     if (flowKey->l2.dlType == htons(ETH_TYPE_IPV4)) {
@@ -748,6 +751,22 @@ OvsCtSetupLookupCtx(OvsFlowKey *flowKey,
                      natEntry);
     } else {
         OVS_LOG_INFO("not found related nat entry");
+        /*if c2s direction TCP not found search again*/
+        if (flowKey->ipKey.nwProto == IPPROTO_TCP) {
+           revCtxKey = ctx->key;
+           OvsCtKeyReverse(&revCtxKey);
+           natEntry = OvsNatLookup(&revCtxkey, TRUE);
+
+           if (natEntry) {
+               /* Translate address first for reverse NAT */
+               ctx->key = natEntry->ctEntry->key;
+               OVS_LOG_INFO("rev key found nat entry %p",
+                            natEntry);
+               ovs_dump_nat_entry_key(natEntry);
+            } else {
+               OVS_LOG_INFO("still not found related nat entry");
+            }
+        }
     }
 
     ctx->hash = OvsCtHashKey(&ctx->key);
@@ -2107,6 +2126,36 @@ OvsCtLimitHandler(POVS_USER_PARAMS_CONTEXT usrParamsCtx,
     *replyLen = msgOut->nlMsg.nlmsgLen;
 
     return status;
+}
+int ovs_dump_nat_entry_key(POVS_NAT_ENTRY entry)
+{
+    UINT32 ipAddr_src = 0, ipAddr_dst = 0;
+    uint16_t port_src = 0, port_dst = 0;
+
+    if (!entry ) return 0;
+
+    ipAddr_src = entry->key.src.addr.ipv4_aligned;
+    ipAddr_dst = entry->key.dst.addr.ipv4_aligned;
+    port_src = ntohs(entry->key.src.port);
+    port_dst = ntohs(entry->key.dst.port);
+
+    OVS_LOG_INFO("nat.ent.key src: %d.%d.%d.%d:%u, dst: %d.%d.%d.%d:%u, dl %u, entry %p",
+                 ipAddr_src & 0xff, (ipAddr_src >> 8) & 0xff,
+                 (ipAddr_src >> 16) & 0xff, (ipAddr_src >> 24) & 0xff, port_src,
+                 ipAddr_dst & 0xff, (ipAddr_dst >> 8) & 0xff,
+                 (ipAddr_dst >> 16) & 0xff, (ipAddr_dst >> 24) & 0xff, port_dst,
+                  entry);
+    ipAddr_src = entry->value.src.addr.ipv4_aligned;
+    ipAddr_dst = entry->value.dst.addr.ipv4_aligned;
+    port_src = ntohs(entry->value.src.port);
+    port_dst = ntohs(entry->value.dst.port);
+    OVS_LOG_INFO("nat.ent.key src: %d.%d.%d.%d:%u, dst: %d.%d.%d.%d:%u, entry %p",
+                 ipAddr_src & 0xff, (ipAddr_src >> 8) & 0xff,
+                 (ipAddr_src >> 16) & 0xff, (ipAddr_src >> 24) & 0xff, port_src,
+                 ipAddr_dst & 0xff, (ipAddr_dst >> 8) & 0xff,
+                 (ipAddr_dst >> 16) & 0xff, (ipAddr_dst >> 24) & 0xff, port_dst,
+                  entry);
+   return 0;
 }
 int ovs_dump_ct_entry_key(POVS_CT_ENTRY entry, OvsForwardingContext *fwdCtx)
 {
