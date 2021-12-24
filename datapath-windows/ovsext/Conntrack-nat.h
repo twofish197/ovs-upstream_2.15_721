@@ -35,5 +35,5 @@ POVS_NAT_ENTRY OvsNatLookup(const OVS_CT_KEY *ctKey, BOOLEAN reverse);
 BOOLEAN OvsNatTranslateCtEntry(OVS_CT_ENTRY *ctEntry);
 VOID OvsNatPacket(OvsForwardingContext *ovsFwdCtx, const OVS_CT_ENTRY *entry,
                   UINT16 natAction, OvsFlowKey *key, BOOLEAN reverse);
-int ovs_dump_nat_entry_key(POVS_NAT_ENTRY entry);
+int ovs_dump_nat_entry_key(const POVS_NAT_ENTRY entry);
 #endif

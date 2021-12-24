@@ -251,9 +251,7 @@ NDIS_STATUS OvsCtHandleFtp(PNET_BUFFER_LIST curNbl,
                            BOOLEAN request);
 int ovs_dump_ct_entry_key(POVS_CT_ENTRY entry, OvsForwardingContext *fwdCtx);
 
-int ovs_dump_nat_entry_key(const POVS_NAT_ENTRY entry);
-
 int OvsCheckTcpC2S(UINT16 tcp_flags);
-int 
-OvsIsTcpC2S(PNET_BUFFER_LIST curNbl, OVS_PACKET_HDR_INFO *layers);
+ 
+int OvsIsTcpC2S(PNET_BUFFER_LIST curNbl, OVS_PACKET_HDR_INFO *layers);
 #endif /* __OVS_CONNTRACK_H_ */
