@@ -2144,7 +2144,7 @@ int ovs_dump_nat_entry_key(const OVS_NAT_ENTRY *entry)
     port_src = ntohs(entry->key.src.port);
     port_dst = ntohs(entry->key.dst.port);
 
-    OVS_LOG_INFO("nat.ent.key src: %d.%d.%d.%d:%u, dst: %d.%d.%d.%d:%u, dl %u, entry %p",
+    OVS_LOG_INFO("nat.ent.key src: %d.%d.%d.%d:%u, dst: %d.%d.%d.%d:%u, entry %p",
                  ipAddr_src & 0xff, (ipAddr_src >> 8) & 0xff,
                  (ipAddr_src >> 16) & 0xff, (ipAddr_src >> 24) & 0xff, port_src,
                  ipAddr_dst & 0xff, (ipAddr_dst >> 8) & 0xff,
@@ -2154,7 +2154,7 @@ int ovs_dump_nat_entry_key(const OVS_NAT_ENTRY *entry)
     ipAddr_dst = entry->value.dst.addr.ipv4_aligned;
     port_src = ntohs(entry->value.src.port);
     port_dst = ntohs(entry->value.dst.port);
-    OVS_LOG_INFO("nat.ent.key src: %d.%d.%d.%d:%u, dst: %d.%d.%d.%d:%u, entry %p",
+    OVS_LOG_INFO("nat.ent.value src: %d.%d.%d.%d:%u, dst: %d.%d.%d.%d:%u, entry %p",
                  ipAddr_src & 0xff, (ipAddr_src >> 8) & 0xff,
                  (ipAddr_src >> 16) & 0xff, (ipAddr_src >> 24) & 0xff, port_src,
                  ipAddr_dst & 0xff, (ipAddr_dst >> 8) & 0xff,
