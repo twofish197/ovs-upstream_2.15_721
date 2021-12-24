@@ -755,7 +755,7 @@ OvsCtSetupLookupCtx(OvsFlowKey *flowKey,
         /*if c2s direction TCP not found search again*/
         if (flowKey->ipKey.nwProto == IPPROTO_TCP) {
            int c2s = 0;
-           c2s = OvsGetTcpHeader(curNbl, layers);
+           c2s = OvsIsTcpC2S(curNbl, layers);
            if (c2s) {
               revCtxKey = ctx->key;
               OvsCtKeyReverse(&revCtxKey);
@@ -2197,16 +2197,15 @@ int ovs_dump_ct_entry_key(POVS_CT_ENTRY entry, OvsForwardingContext *fwdCtx)
 }
 
 int 
-OvsGetTcpHeader(PNET_BUFFER_LIST nbl,
-                OVS_PACKET_HDR_INFO *layers)
+OvsIsTcpC2S(PNET_BUFFER_LIST nbl, OVS_PACKET_HDR_INFO *layers)
 {
-  UINT32 tcpPayloadLen;
-  TCPHdr tcpStorage;
-  const TCPHdr *tcp = NULL;
-  UINT16 tcp_flags = 0; 
-  tcp = OvsGetTcpHeader(curNbl, layers, &tcpStorage, &tcpPayloadLen);
+    UINT32 tcpPayloadLen;
+    TCPHdr tcpStorage;
+    const TCPHdr *tcp = NULL;
+    UINT16 tcp_flags = 0; 
+    tcp = OvsGetTcpHeader(curNbl, layers, &tcpStorage, &tcpPayloadLen);
 
-  tcp_flags = ntohs(tcp->flags);
-  return OvsCheckTcpC2S(tcp_flags);
+    tcp_flags = ntohs(tcp->flags);
+    return OvsCheckTcpC2S(tcp_flags);
 }
 #pragma warning(pop)
