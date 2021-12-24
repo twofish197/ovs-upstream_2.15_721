@@ -2132,7 +2132,7 @@ OvsCtLimitHandler(POVS_USER_PARAMS_CONTEXT usrParamsCtx,
 
     return status;
 }
-int ovs_dump_nat_entry_key(const POVS_NAT_ENTRY entry)
+int ovs_dump_nat_entry_key(const OVS_NAT_ENTRY *entry)
 {
     UINT32 ipAddr_src = 0, ipAddr_dst = 0;
     uint16_t port_src = 0, port_dst = 0;
