@@ -1542,36 +1542,6 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
         udpHdr = (UDPHdr *)(bufferStart + layers->l4Offset);
     }
 
-    OVS_LOG_INFO("nbl %p ", ovsFwdCtx->curNbl);
-    if (ipHdr) {
-           OVS_LOG_INFO("before update address ,nbl %p", ovsFwdCtx->curNbl);
-           UINT32 ipAddr = 0;
-           ipAddr = ipHdr->saddr;
-           OVS_LOG_INFO("Source: %d.%d.%d.%d, nbl %p",
-                           ipAddr & 0xff, (ipAddr >> 8) & 0xff,
-                           (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff,
-                           ovsFwdCtx->curNbl);
-
-           ipAddr = ipHdr->daddr;
-           OVS_LOG_INFO("Destination: %d.%d.%d.%d, nbl %p",
-                           ipAddr & 0xff, (ipAddr >> 8) & 0xff,
-                           (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff,
-                           ovsFwdCtx->curNbl);
-
-           OVS_LOG_INFO("ipid %u hex:0x%x, Proto %u, tos $u, nbl %p", ntohs(ipHdr->id),
-                         ntohs(ipHdr->id), ipHdr->protocol, ipHdr->tos,
-                         ovsFwdCtx->curNbl);
-           OVS_LOG_INFO("Port %u newPort %u, nbl %p",
-                         ntohs(old_port), ntohs(newPort),
-                         ovsFwdCtx->curNbl);
-
-           if (tcpHdr) {
-                   OVS_LOG_INFO("the TCP 20 seq %u,checksum %u 0x%x, nbl %p",
-                                 ntohl(tcpHdr->seq),
-                                 ntohs(tcpHdr->check), ntohs(tcpHdr->check),
-                                 ovsFwdCtx->curNbl);
-           }
-    }
     csumInfo.Value = NET_BUFFER_LIST_INFO(ovsFwdCtx->curNbl,
                                           TcpIpChecksumNetBufferListInfo);
 
@@ -1630,6 +1600,32 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
 
     old_port = *portField;
 
+    if (ipHdr) {
+           OVS_LOG_INFO("before update address ,nbl %p", ovsFwdCtx->curNbl);
+           UINT32 ipAddr = 0;
+           ipAddr = ipHdr->saddr;
+           OVS_LOG_INFO("Source: %d.%d.%d.%d:%u, nbl %p",
+                        ipAddr & 0xff, (ipAddr >> 8) & 0xff,
+                        (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff,
+                        ntohs(old_port), ovsFwdCtx->curNbl);
+
+           ipAddr = ipHdr->daddr;
+           OVS_LOG_INFO("Destination: %d.%d.%d.%d:%u, nbl %p",
+                         ipAddr & 0xff, (ipAddr >> 8) & 0xff,
+                         (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff,
+                         ntohs(newPort), ovsFwdCtx->curNbl);
+
+           OVS_LOG_INFO("ipid %u hex:0x%x, Proto %u, tos $u, nbl %p", ntohs(ipHdr->id),
+                         ntohs(ipHdr->id), ipHdr->protocol, ipHdr->tos,
+                         ovsFwdCtx->curNbl);
+           if (tcpHdr) {
+                   OVS_LOG_INFO("the TCP 20 seq %u,checksum %u 0x%x, nbl %p",
+                                 ntohl(tcpHdr->seq),
+                                 ntohs(tcpHdr->check), ntohs(tcpHdr->check),
+                                 ovsFwdCtx->curNbl);
+           }
+    }
+
     if (*addrField != newAddr) {
         UINT32 oldAddr = *addrField;
         if ((checkField && *checkField != 0) && (!l4Offload || !isTx)) {
@@ -1665,24 +1661,21 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
            UINT32 ipAddr = 0;
            ipAddr = ipHdr->saddr;
            OVS_LOG_INFO("after update address, nbl %p", ovsFwdCtx->curNbl);
-           OVS_LOG_INFO("Source: %d.%d.%d.%d, nbl %p",
+           OVS_LOG_INFO("Source: %d.%d.%d.%d:%u, nbl %p",
                         ipAddr & 0xff, (ipAddr >> 8) & 0xff,
                         (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff,
-                        ovsFwdCtx->curNbl);
+                        ntohs(old_port), ovsFwdCtx->curNbl);
 
            ipAddr = ipHdr->daddr;
-           OVS_LOG_INFO("Destination: %d.%d.%d.%d, nbl %p",
+           OVS_LOG_INFO("Destination: %d.%d.%d.%d:%u, nbl %p",
                          ipAddr & 0xff, (ipAddr >> 8) & 0xff,
                          (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff,
-                         ovsFwdCtx->curNbl);
+                         ntohs(newPort), ovsFwdCtx->curNbl);
 
            OVS_LOG_INFO("ipid %u hex:0x%x, Proto %u, tos $u, nbl %p", ntohs(ipHdr->id),
                          ntohs(ipHdr->id), ipHdr->protocol, ipHdr->tos,
                          ovsFwdCtx->curNbl);
 
-           OVS_LOG_INFO("Port %u newPort %u, nbl %p",
-                         ntohs(old_port), ntohs(newPort),
-                         ovsFwdCtx->curNbl);
            if (tcpHdr) {
                    OVS_LOG_INFO("the TCP 21 seq %u,checksum %u 0x%x, nbl %p",
                                  ntohl(tcpHdr->seq),
