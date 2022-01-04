@@ -1088,7 +1088,7 @@ OvsCtExecute_(OvsForwardingContext *fwdCtx,
         OvsNatPacket(fwdCtx, entry, entry->natInfo.natAction,
                      key, ctx.reply);
         ovs_dump_ct_entry_key(entry, fwdCtx);
-        ovs_dump_flow_key(key, fwdCtx->curNbl)
+        ovs_dump_flow_key(key, fwdCtx->curNbl);
     }
 
    OVS_LOG_INFO("in OvsCtExecute_ after nat entry->key.zone %u, ct-mark %u, entry %p, nbl %p",
