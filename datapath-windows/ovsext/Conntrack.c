@@ -679,7 +679,7 @@ OvsCtSetupLookupCtx(OvsFlowKey *flowKey,
                     OVS_PACKET_HDR_INFO *layers)
 {
     const OVS_NAT_ENTRY *natEntry;
-    OVS_CT_KEY revCtxKey = {0};
+    //OVS_CT_KEY revCtxKey = {0};
 
     ctx->key.zone = zone;
     ctx->key.dl_type = flowKey->l2.dlType;
