@@ -580,7 +580,7 @@ done:
 
 int OvsCheckTcpC2S(UINT16 tcp_flags)
 {
-   int    c2s = 0;
+   int c2s = 0;
    if ((tcp_flags & (TCP_SYN|TCP_ACK)) == TCP_SYN) {
        c2s = 1;
    }

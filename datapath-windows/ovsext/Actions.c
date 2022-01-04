@@ -1868,7 +1868,7 @@ OvsExecuteSetAction(OvsForwardingContext *ovsFwdCtx,
     enum ovs_key_attr type = NlAttrType(a);
     NDIS_STATUS status = NDIS_STATUS_SUCCESS;
 
-    OVS_LOG_INFO("will handle type %d", type);
+    OVS_LOG_INFO("will handle type %d, nbl %p", type, ovsFwdCtx->curNbl);
     switch (type) {
     case OVS_KEY_ATTR_ETHERNET:
         status = OvsUpdateEthHeader(ovsFwdCtx, key,
@@ -1942,7 +1942,7 @@ OvsExecuteRecirc(OvsForwardingContext *ovsFwdCtx,
             return NDIS_STATUS_SUCCESS;
         }
     }
-    OVS_LOG_INFO("recircle_id %d", NlAttrGetU32(actions));
+    OVS_LOG_INFO("recircle_id %d, nbl %p", NlAttrGetU32(actions), ovsFwdCtx->curNbl);
     if (newNbl) {
         deferredAction = OvsAddDeferredActions(newNbl, key, &(ovsFwdCtx->layers),
                                                NULL);
@@ -2194,6 +2194,7 @@ OvsDoExecuteActions(POVS_SWITCH_CONTEXT switchContext,
         OVS_LOG_INFO("one round a_i %d Action %d, nbl %p",
                       action_index, NlAttrType(a), ovsFwdCtx.curNbl);
 
+        ovs_dump_flow_key(key, ovsFwdCtx.curNbl);
         status1 = OvsDumpFlow_ip(ovsFwdCtx.curNbl, portNo, &key_dump, &layers_dump, NULL);
         action_index++;
         OVS_LOG_INFO(" after dump flow Action %d, nbl %p", NlAttrType(a), ovsFwdCtx.curNbl);
