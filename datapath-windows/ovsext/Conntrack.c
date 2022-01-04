@@ -675,8 +675,7 @@ OvsCtSetupLookupCtx(OvsFlowKey *flowKey,
                     UINT16 zone,
                     OvsConntrackKeyLookupCtx *ctx,
                     PNET_BUFFER_LIST curNbl,
-                    UINT32 l4Offset,
-                    OVS_PACKET_HDR_INFO *layers)
+                    UINT32 l4Offset)
 {
     const OVS_NAT_ENTRY *natEntry;
     //OVS_CT_KEY revCtxKey = {0};
@@ -1011,7 +1010,7 @@ OvsCtExecute_(OvsForwardingContext *fwdCtx,
     NdisGetCurrentSystemTime((LARGE_INTEGER *) &currentTime);
 
     /* Retrieve the Conntrack Key related fields from packet */
-    OvsCtSetupLookupCtx(key, zone, &ctx, curNbl, layers->l4Offset, layers);
+    OvsCtSetupLookupCtx(key, zone, &ctx, curNbl, layers->l4Offset);
 
     /* Lookup Conntrack entries for a matching entry */
     entry = OvsCtLookup(&ctx);
