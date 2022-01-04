@@ -826,8 +826,8 @@ OvsCreateAndAddPackets(PVOID userData,
         nb = NET_BUFFER_LIST_FIRST_NB(nbl);
         packetLength = NET_BUFFER_DATA_LENGTH(nb);
 
-        OVS_LOG_TRACE("MSS %u packet len %u",
-                tsoInfo.LsoV1Transmit.MSS, packetLength);
+        OVS_LOG_TRACE("MSS %u packet len %u nbl %p",
+                tsoInfo.LsoV1Transmit.MSS, packetLength, nbl);
         if (tsoInfo.LsoV1Transmit.MSS) {
             OVS_LOG_TRACE("l4Offset %d", hdrInfo->l4Offset);
             newNbl = OvsTcpSegmentNBL(switchContext, nbl, hdrInfo,

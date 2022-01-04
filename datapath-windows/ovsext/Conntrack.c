@@ -751,6 +751,7 @@ OvsCtSetupLookupCtx(OvsFlowKey *flowKey,
         OVS_LOG_INFO("found nat entry %p",
                      natEntry);
     } else {
+        #if 0
         OVS_LOG_INFO("not found related nat entry");
         /*if c2s direction TCP not found search again*/
         if (flowKey->ipKey.nwProto == IPPROTO_TCP) {
@@ -772,6 +773,7 @@ OvsCtSetupLookupCtx(OvsFlowKey *flowKey,
                }
            }
         }
+       #endif
     }
 
     ctx->hash = OvsCtHashKey(&ctx->key);
