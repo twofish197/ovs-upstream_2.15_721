@@ -2196,13 +2196,13 @@ int ovs_dump_ct_entry_key(POVS_CT_ENTRY entry, OvsForwardingContext *fwdCtx)
    return 0;
 }
 
-int 
+int
 OvsIsTcpC2S(PNET_BUFFER_LIST curNbl, OVS_PACKET_HDR_INFO *layers)
 {
     UINT32 tcpPayloadLen;
     TCPHdr tcpStorage;
     const TCPHdr *tcp = NULL;
-    UINT16 tcp_flags = 0; 
+    UINT16 tcp_flags = 0;
     tcp = OvsGetTcpHeader(curNbl, layers, &tcpStorage, &tcpPayloadLen);
 
     tcp_flags = ntohs(tcp->flags);
