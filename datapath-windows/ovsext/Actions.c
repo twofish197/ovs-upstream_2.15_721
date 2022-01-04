@@ -855,7 +855,7 @@ OvsOutputForwardingCtx(OvsForwardingContext *ovsFwdCtx)
             (ovsFwdCtx->destPortsSizeIn - ovsFwdCtx->destPortsSizeOut);
 
         ASSERT(ovsFwdCtx->destinationPorts != NULL);
-        OVS_LOG_INFO("ovsFwdCtx->destPortsSizeOut > 0, nbl %p",ovsFwdCtx->curNbl);
+        OVS_LOG_INFO("ovsFwdCtx->destPortsSizeOut > 0, nbl %p", ovsFwdCtx->curNbl);
         /*
          * Create a copy of the packet in order to do encap on it later. Also,
          * don't copy the offload context since the encap'd packet has a

@@ -2831,7 +2831,7 @@ int ovs_dump_flow_key(OvsFlowKey *flowKey, PNET_BUFFER_LIST curNbl)
         port_src = ntohs(flowKey->ipKey.l4.tpSrc);
         port_dst = ntohs(flowKey->ipKey.l4.tpDst);
 
-        OVS_LOG_INFO("flow key src: %d.%d.%d.%d:%u, dst: %d.%d.%d.%d:%u, nw_pro %d,nbl %p",
+        OVS_LOG_INFO("flow key src: %d.%d.%d.%d:%u, dst: %d.%d.%d.%d:%u, nw_pro %d, nbl %p",
                     ipAddr_src & 0xff, (ipAddr_src >> 8) & 0xff,
                     (ipAddr_src >> 16) & 0xff, (ipAddr_src >> 24) & 0xff, port_src,
                     ipAddr_dst & 0xff, (ipAddr_dst >> 8) & 0xff,
