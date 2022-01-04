@@ -2816,6 +2816,30 @@ OvsDumpFlow(const NET_BUFFER_LIST *packet,
     return NDIS_STATUS_SUCCESS;
 }
 
+int ovs_dump_flow_key(OvsFlowKey *key, PNET_BUFFER_LIST curNbl)
+{
+    UINT32 ipAddr_src = 0, ipAddr_dst = 0;
+    uint16_t port_src = 0, port_dst = 0;
+
+    if (!key || !curNbl ) return 0;
+
+    /* Extract L3 and L4*/
+    if (flowKey->l2.dlType == htons(ETH_TYPE_IPV4)) {
+        ipAddr_src = flowKey->ipKey.nwSrc;
+        ipAddr_dst = flowKey->ipKey.nwDst;
+
+        port_src = ntohs(flowKey->ipKey.l4.tpSrc);
+        port_dst = ntohs(flowKey->ipKey.l4.tpDst);
+
+        OVS_LOG_INFO("flow key src: %d.%d.%d.%d:%u, dst: %d.%d.%d.%d:%u, nw_pro %d,nbl %p",
+                    ipAddr_src & 0xff, (ipAddr_src >> 8) & 0xff,
+                    (ipAddr_src >> 16) & 0xff, (ipAddr_src >> 24) & 0xff, port_src,
+                    ipAddr_dst & 0xff, (ipAddr_dst >> 8) & 0xff,
+                    (ipAddr_dst >> 16) & 0xff, (ipAddr_dst >> 24) & 0xff, port_dst,
+                    flow_key->ipKey.nwProto, curNbl);
+   }
+   return 0;
+}
 NDIS_STATUS
 OvsDumpFlow_ip(const NET_BUFFER_LIST *packet,
            UINT32 inPort,

@@ -1615,7 +1615,7 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
                          (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff,
                          ntohs(newPort), ovsFwdCtx->curNbl);
 
-           OVS_LOG_INFO("ipid %u hex:0x%x, Proto %u, tos $u, nbl %p", ntohs(ipHdr->id),
+           OVS_LOG_INFO("ipid %u hex:0x%x, Proto %u, tos %u, nbl %p", ntohs(ipHdr->id),
                          ntohs(ipHdr->id), ipHdr->protocol, ipHdr->tos,
                          ovsFwdCtx->curNbl);
            if (tcpHdr) {
@@ -1672,7 +1672,7 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
                          (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff,
                          ntohs(newPort), ovsFwdCtx->curNbl);
 
-           OVS_LOG_INFO("ipid %u hex:0x%x, Proto %u, tos $u, nbl %p", ntohs(ipHdr->id),
+           OVS_LOG_INFO("ipid %u hex:0x%x, Proto %u, tos %u, nbl %p", ntohs(ipHdr->id),
                          ntohs(ipHdr->id), ipHdr->protocol, ipHdr->tos,
                          ovsFwdCtx->curNbl);
 
@@ -2589,6 +2589,10 @@ OvsDoRecirc(POVS_SWITCH_CONTEXT switchContext,
                          NET_BUFFER_LIST_SWITCH_FORWARDING_DETAIL(curNbl),
                          completionList, layers, TRUE);
     ASSERT(ovsFwdCtx.switchContext);
+
+    OVS_LOG_INFO("try lookup flow, nbl %p", ovsFwdCtx.curNbl);
+
+    ovs_dump_flow_key(key, ovsFwdCtx.curNbl);
 
     flow = OvsLookupFlow(&ovsFwdCtx.switchContext->datapath, key, &hash, FALSE);
     if (flow) {

@@ -675,10 +675,11 @@ OvsCtSetupLookupCtx(OvsFlowKey *flowKey,
                     UINT16 zone,
                     OvsConntrackKeyLookupCtx *ctx,
                     PNET_BUFFER_LIST curNbl,
-                    UINT32 l4Offset)
+                    UINT32 l4Offset,
+                    OVS_PACKET_HDR_INFO *layers)
 {
     const OVS_NAT_ENTRY *natEntry;
-    //OVS_CT_KEY revCtxKey = {0};
+    OVS_CT_KEY revCtxKey = {0};
 
     ctx->key.zone = zone;
     ctx->key.dl_type = flowKey->l2.dlType;
@@ -750,7 +751,7 @@ OvsCtSetupLookupCtx(OvsFlowKey *flowKey,
         OVS_LOG_INFO("found nat entry %p",
                      natEntry);
     } else {
-        #if 0
+        #if 1 
         OVS_LOG_INFO("not found related nat entry");
         /*if c2s direction TCP not found search again*/
         if (flowKey->ipKey.nwProto == IPPROTO_TCP) {
@@ -1010,7 +1011,7 @@ OvsCtExecute_(OvsForwardingContext *fwdCtx,
     NdisGetCurrentSystemTime((LARGE_INTEGER *) &currentTime);
 
     /* Retrieve the Conntrack Key related fields from packet */
-    OvsCtSetupLookupCtx(key, zone, &ctx, curNbl, layers->l4Offset);
+    OvsCtSetupLookupCtx(key, zone, &ctx, curNbl, layers->l4Offset, layers);
 
     /* Lookup Conntrack entries for a matching entry */
     entry = OvsCtLookup(&ctx);
@@ -1087,6 +1088,7 @@ OvsCtExecute_(OvsForwardingContext *fwdCtx,
         OvsNatPacket(fwdCtx, entry, entry->natInfo.natAction,
                      key, ctx.reply);
         ovs_dump_ct_entry_key(entry, fwdCtx);
+        ovs_dump_flow_key(key, fwdCtx->curNbl)
     }
 
    OVS_LOG_INFO("in OvsCtExecute_ after nat entry->key.zone %u, ct-mark %u, entry %p, nbl %p",
@@ -2196,6 +2198,7 @@ int ovs_dump_ct_entry_key(POVS_CT_ENTRY entry, OvsForwardingContext *fwdCtx)
                   entry, curNbl);
    return 0;
 }
+
 
 int
 OvsIsTcpC2S(PNET_BUFFER_LIST curNbl, OVS_PACKET_HDR_INFO *layers)

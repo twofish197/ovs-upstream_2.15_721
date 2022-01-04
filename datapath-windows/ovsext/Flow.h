@@ -64,6 +64,8 @@ OvsDumpFlow(const NET_BUFFER_LIST *packet,
             POVS_PACKET_HDR_INFO layers,
             OvsIPv4TunnelKey *tunKey);
 
+int ovs_dump_flow_key(OvsFlowKey *key, PNET_BUFFER_LIST curNbl);
+
 NDIS_STATUS
 OvsDumpFlow_ip(const NET_BUFFER_LIST *packet,
            UINT32 inPort,
