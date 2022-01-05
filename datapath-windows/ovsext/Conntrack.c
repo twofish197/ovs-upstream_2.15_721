@@ -1036,12 +1036,17 @@ OvsCtExecute_(OvsForwardingContext *fwdCtx,
     }
 
     //restore the ctx key to flow key
-    ctx.key.src.addr.ipv4 = key->ipKey.nwSrc;
-    ctx.key.dst.addr.ipv4 = key->ipKey.nwDst;
-    ctx.key.nw_proto = key->ipKey.nwProto;
 
-    ctx.key.src.port = key->ipKey.l4.tpSrc;
-    ctx.key.dst.port = key->ipKey.l4.tpDst;
+    if (key->l2.dlType == htons(ETH_TYPE_IPV4)) {
+        if (key && (key->ipKey.nwProto == IPPROTO_TCP)) {
+           ctx.key.src.addr.ipv4 = key->ipKey.nwSrc;
+           ctx.key.dst.addr.ipv4 = key->ipKey.nwDst;
+           ctx.key.nw_proto = key->ipKey.nwProto;
+
+           ctx.key.src.port = key->ipKey.l4.tpSrc;
+           ctx.key.dst.port = key->ipKey.l4.tpDst;
+       }
+    }
     if (entry) {
         /* Increment stats for the entry if it wasn't tracked previously or
          * if they are on different zones
