@@ -426,7 +426,6 @@ OvsExecuteDpIoctl(OvsPacketExecute *execute)
     PNL_ATTR                    actions = NULL;
     PNDIS_SWITCH_FORWARDING_DETAIL_NET_BUFFER_LIST_INFO fwdDetail;
     OvsFlowKey                  key = { 0 };
-    OvsFlowKey                  key_download = { 0 };
     OVS_PACKET_HDR_INFO         layers = { 0 };
     POVS_VPORT_ENTRY            vport = NULL;
     PNL_ATTR tunnelAttrs[__OVS_TUNNEL_KEY_ATTR_MAX];
