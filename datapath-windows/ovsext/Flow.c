@@ -2821,7 +2821,7 @@ int ovs_dump_flow_key(OvsFlowKey *flowKey, PNET_BUFFER_LIST curNbl)
     UINT32 ipAddr_src = 0, ipAddr_dst = 0;
     uint16_t port_src = 0, port_dst = 0;
 
-    if (!flowKey || !curNbl ) return 0;
+    if (!flowKey) return 0;
 
     /* Extract L3 and L4*/
     if (flowKey->l2.dlType == htons(ETH_TYPE_IPV4)) {
@@ -3119,6 +3119,8 @@ AddFlow(OVS_DATAPATH *datapath, OvsFlow *flow)
         return STATUS_INVALID_HANDLE;
     }
 
+    OVS_LOG_INFO("add flow");
+    ovs_dump_flow_key(&flow->key, NULL);
     head = &(datapath->flowTable[HASH_BUCKET(flow->hash)]);
     /*
      * We need fence here to make sure flow's nextPtr is updated before
