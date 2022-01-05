@@ -1023,6 +1023,7 @@ OvsCtExecute_(OvsForwardingContext *fwdCtx,
     /* Lookup Conntrack entries for a matching entry */
     entry = OvsCtLookup(&ctx);
 
+
     /* Delete entry in reverse direction if 'force' is specified */
     if (force && ctx.reply && entry) {
         OVS_LOG_INFO("in OvsCtExecute_ entry will be deleted entry->key.zone %u, ct-mark %u, entry %p, nbl %p",
@@ -1034,6 +1035,13 @@ OvsCtExecute_(OvsForwardingContext *fwdCtx,
         entry = NULL;
     }
 
+    //restore the ctx key to flow key
+    ctx.key.src.addr.ipv4 = key->ipKey.nwSrc;
+    ctx.key.dst.addr.ipv4 = key->ipKey.nwDst;
+    ctx.key.nw_proto = key->ipKey.nwProto;
+
+    ctx.key.src.port = key->ipKey.l4.tpSrc;
+    ctx.key.dst.port = key->ipKey.l4.tpDst;
     if (entry) {
         /* Increment stats for the entry if it wasn't tracked previously or
          * if they are on different zones
