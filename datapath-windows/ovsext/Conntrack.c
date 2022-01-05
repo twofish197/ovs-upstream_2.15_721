@@ -693,7 +693,7 @@ OvsCtSetupLookupCtx(OvsFlowKey *flowKey,
            int c2s = 0;
            c2s = OvsIsTcpC2S(curNbl, layers);
            if (c2s) {
-              key_ct_not_null = ovs_check_flow_key_ct_not_null(&(ctx->key), flowKey, curNbl));
+              key_ct_not_null = ovs_check_flow_key_ct_not_null(&(ctx->key), flowKey, curNbl);
            }
         } 
         if (!key_ct_not_null) {
