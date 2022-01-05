@@ -675,10 +675,11 @@ OvsCtSetupLookupCtx(OvsFlowKey *flowKey,
                     UINT16 zone,
                     OvsConntrackKeyLookupCtx *ctx,
                     PNET_BUFFER_LIST curNbl,
-                    UINT32 l4Offset)
-                    //OVS_PACKET_HDR_INFO *layers)
+                    UINT32 l4Offset,
+                    OVS_PACKET_HDR_INFO *layers)
 {
     const OVS_NAT_ENTRY *natEntry;
+    int key_ct_not_null = 0;
     //OVS_CT_KEY revCtxKey = {0};
 
     ctx->key.zone = zone;
@@ -689,14 +690,20 @@ OvsCtSetupLookupCtx(OvsFlowKey *flowKey,
     /* Extract L3 and L4*/
     if (flowKey->l2.dlType == htons(ETH_TYPE_IPV4)) {
         if (flowKey && (flowKey->ipKey.nwProto == IPPROTO_TCP)) {
-           ovs_dump_flow_key_ct(flowKey, curNbl);
-        }
-        ctx->key.src.addr.ipv4 = flowKey->ipKey.nwSrc;
-        ctx->key.dst.addr.ipv4 = flowKey->ipKey.nwDst;
-        ctx->key.nw_proto = flowKey->ipKey.nwProto;
+           int c2s = 0;
+           c2s = OvsIsTcpC2S(curNbl, layers);
+           if (c2s) {
+              key_ct_not_null = ovs_check_flow_key_ct_not_null(&(ctx->key), flowKey, curNbl));
+           }
+        } 
+        if (!key_ct_not_null) {
+           ctx->key.src.addr.ipv4 = flowKey->ipKey.nwSrc;
+           ctx->key.dst.addr.ipv4 = flowKey->ipKey.nwDst;
+           ctx->key.nw_proto = flowKey->ipKey.nwProto;
 
-        ctx->key.src.port = flowKey->ipKey.l4.tpSrc;
-        ctx->key.dst.port = flowKey->ipKey.l4.tpDst;
+           ctx->key.src.port = flowKey->ipKey.l4.tpSrc;
+           ctx->key.dst.port = flowKey->ipKey.l4.tpDst;
+        }
         if (flowKey->ipKey.nwProto == IPPROTO_ICMP) {
             ICMPHdr icmpStorage;
             const ICMPHdr *icmp;
@@ -1014,8 +1021,7 @@ OvsCtExecute_(OvsForwardingContext *fwdCtx,
     NdisGetCurrentSystemTime((LARGE_INTEGER *) &currentTime);
 
     /* Retrieve the Conntrack Key related fields from packet */
-    OvsCtSetupLookupCtx(key, zone, &ctx, curNbl, layers->l4Offset);
-     //, layers);
+    OvsCtSetupLookupCtx(key, zone, &ctx, curNbl, layers->l4Offset, layers);
 
     /* Lookup Conntrack entries for a matching entry */
     entry = OvsCtLookup(&ctx);
@@ -2215,4 +2221,42 @@ OvsIsTcpC2S(PNET_BUFFER_LIST curNbl, OVS_PACKET_HDR_INFO *layers)
     }
     return OvsCheckTcpC2S(tcp_flags);
 }
+
+int ovs_check_flow_key_ct_not_null(POVS_CT_KEY ctKey, OvsFlowKey *flowKey, PNET_BUFFER_LIST curNbl)
+{
+    UINT32 ipAddr_src = 0, ipAddr_dst = 0;
+    uint16_t port_src = 0, port_dst = 0;
+    int ct_not_null = 0;
+
+    if (!flowKey || !ctKey) return 0;
+
+    /* Extract L3 and L4*/
+    if (flowKey->l2.dlType == htons(ETH_TYPE_IPV4)) {
+        ipAddr_src = flowKey->ct.tuple_ipv4.ipv4_src;
+        ipAddr_dst = flowKey->ct.tuple_ipv4.ipv4_dst;
+      
+        if (ipAddr_src > 0 && ipAddr_dst > 0) {
+           ctKey->src.addr.ipv4 = flowKey->ct.tuple_ipv4.ipv4_src;
+           ctKey->dst.addr.ipv4 = flowKey->ct.tuple_ipv4.ipv4_dst;
+           ctKey->nw_proto = flowKey->ct.tuple_ipv4.ipv4_proto;
+           ctKey->src.port = flowKey->ct.tuple_ipv4.src_port;
+           ctKey->dst.port = flowKey->ct.tuple_ipv4.dst_port;
+           ct_not_null = 1;
+
+           port_src = ntohs(flowKey->ct.tuple_ipv4.src_port);
+           port_dst = ntohs(flowKey->ct.tuple_ipv4.dst_port);
+
+           OVS_LOG_INFO("flow key.ct src: %d.%d.%d.%d:%u, dst: %d.%d.%d.%d:%u, nw_pro %d, nbl %p",
+                        ipAddr_src & 0xff, (ipAddr_src >> 8) & 0xff,
+                        (ipAddr_src >> 16) & 0xff, (ipAddr_src >> 24) & 0xff, port_src,
+                        ipAddr_dst & 0xff, (ipAddr_dst >> 8) & 0xff,
+                        (ipAddr_dst >> 16) & 0xff, (ipAddr_dst >> 24) & 0xff, port_dst,
+                        flowKey->ct.tuple_ipv4.ipv4_proto, curNbl);
+        } else {
+           ct_not_null = 0;
+        }
+   }
+   return ct_not_null;
+}
 #pragma warning(pop)
+

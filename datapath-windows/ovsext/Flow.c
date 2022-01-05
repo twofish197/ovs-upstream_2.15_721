@@ -2840,6 +2840,7 @@ int ovs_dump_flow_key_ct(OvsFlowKey *flowKey, PNET_BUFFER_LIST curNbl)
    }
    return 0;
 }
+
 int ovs_dump_flow_key(OvsFlowKey *flowKey, PNET_BUFFER_LIST curNbl)
 {
     UINT32 ipAddr_src = 0, ipAddr_dst = 0;
