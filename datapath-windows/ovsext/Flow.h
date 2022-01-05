@@ -66,6 +66,7 @@ OvsDumpFlow(const NET_BUFFER_LIST *packet,
 
 int ovs_dump_flow_key(OvsFlowKey *key, PNET_BUFFER_LIST curNbl);
 
+int ovs_dump_flow_key_ct(OvsFlowKey *flowKey, PNET_BUFFER_LIST curNbl);
 NDIS_STATUS
 OvsDumpFlow_ip(const NET_BUFFER_LIST *packet,
            UINT32 inPort,
