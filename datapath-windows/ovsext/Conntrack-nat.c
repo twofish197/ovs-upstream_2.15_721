@@ -214,9 +214,25 @@ OvsNatPacket(OvsForwardingContext *ovsFwdCtx,
                                 endpoint->addr.ipv4_aligned,
                                 endpoint->port, isSrcNat,
                                 !reverse);
+        if (isSrcNat) {
+            key->ipKey.nwSrc = endpoint->addr.ipv4_aligned;
+        } else {
+            key->ipKey.nwDst = endpoint->addr.ipv4_aligned;
+        }
     } else if (ctKey->dl_type == htons(ETH_TYPE_IPV6)){
         // XXX: IPv6 packet not supported yet.
         return;
+    }
+    if (natAction & (NAT_ACTION_SRC_PORT | NAT_ACTION_DST_PORT)) {
+        if (isSrcNat) {
+            if (key->ipKey.l4.tpSrc != 0) {
+                key->ipKey.l4.tpSrc = endpoint->port;
+            }
+        } else {
+            if (key->ipKey.l4.tpDst != 0) {
+                key->ipKey.l4.tpDst = endpoint->port;
+            }
+        }
     }
 }
 

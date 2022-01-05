@@ -679,7 +679,7 @@ OvsCtSetupLookupCtx(OvsFlowKey *flowKey,
                     //OVS_PACKET_HDR_INFO *layers)
 {
     const OVS_NAT_ENTRY *natEntry;
-    //OVS_CT_KEY revCtxKey = {0};
+    OVS_CT_KEY revCtxKey = {0};
 
     ctx->key.zone = zone;
     ctx->key.dl_type = flowKey->l2.dlType;
@@ -688,6 +688,9 @@ OvsCtSetupLookupCtx(OvsFlowKey *flowKey,
 
     /* Extract L3 and L4*/
     if (flowKey->l2.dlType == htons(ETH_TYPE_IPV4)) {
+        if (flowKey && (flowKey->ipKey.nwProto == IPPROTO_TCP)) {
+           ovs_dump_flow_key_ct(flowKey, curNbl);
+        }
         ctx->key.src.addr.ipv4 = flowKey->ipKey.nwSrc;
         ctx->key.dst.addr.ipv4 = flowKey->ipKey.nwDst;
         ctx->key.nw_proto = flowKey->ipKey.nwProto;
@@ -1092,9 +1095,6 @@ OvsCtExecute_(OvsForwardingContext *fwdCtx,
         ovs_dump_flow_key(key, fwdCtx->curNbl);
     }
 
-   OVS_LOG_INFO("in OvsCtExecute_ after nat entry->key.zone %u, ct-mark %u, entry %p, nbl %p",
-                 entry->key.zone, entry->mark, entry, fwdCtx->curNbl);
-
     OvsCtSetMarkLabel(key, entry, mark, labels, &triggerUpdateEvent);
 
     if (OvsDetectFtpPacket(key)) {
@@ -1132,7 +1132,7 @@ OvsCtExecute_(OvsForwardingContext *fwdCtx,
             OvsCtUpdateTuple(key, &entry->key);
         }
     }
-
+    ovs_dump_flow_key_ct(key, fwdCtx->curNbl);
     if (entryCreated) {
         OvsPostCtEventEntry(entry, OVS_EVENT_CT_NEW);
     } else if (postUpdateEvent && triggerUpdateEvent) {

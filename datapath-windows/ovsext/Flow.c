@@ -2816,6 +2816,30 @@ OvsDumpFlow(const NET_BUFFER_LIST *packet,
     return NDIS_STATUS_SUCCESS;
 }
 
+int ovs_dump_flow_key_ct(OvsFlowKey *flowKey, PNET_BUFFER_LIST curNbl)
+{
+    UINT32 ipAddr_src = 0, ipAddr_dst = 0;
+    uint16_t port_src = 0, port_dst = 0;
+
+    if (!flowKey) return 0;
+
+    /* Extract L3 and L4*/
+    if (flowKey->l2.dlType == htons(ETH_TYPE_IPV4)) {
+        ipAddr_src = flowKey->ct.tuple_ipv4.ipv4_src;
+        ipAddr_dst = flowKey->ct.tuple_ipv4.ipv4_dst;
+
+        port_src = ntohs(flowKey->ct.tuple_ipv4.src_port);
+        port_dst = ntohs(flowKey->ct.tuple_ipv4.dst_port);
+
+        OVS_LOG_INFO("flow key.ct src: %d.%d.%d.%d:%u, dst: %d.%d.%d.%d:%u, nw_pro %d, nbl %p",
+                    ipAddr_src & 0xff, (ipAddr_src >> 8) & 0xff,
+                    (ipAddr_src >> 16) & 0xff, (ipAddr_src >> 24) & 0xff, port_src,
+                    ipAddr_dst & 0xff, (ipAddr_dst >> 8) & 0xff,
+                    (ipAddr_dst >> 16) & 0xff, (ipAddr_dst >> 24) & 0xff, port_dst,
+                    flowKey->ct.tuple_ipv4.ipv4_proto, curNbl);
+   }
+   return 0;
+}
 int ovs_dump_flow_key(OvsFlowKey *flowKey, PNET_BUFFER_LIST curNbl)
 {
     UINT32 ipAddr_src = 0, ipAddr_dst = 0;
