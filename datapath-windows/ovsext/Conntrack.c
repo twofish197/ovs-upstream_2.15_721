@@ -690,12 +690,8 @@ OvsCtSetupLookupCtx(OvsFlowKey *flowKey,
     /* Extract L3 and L4*/
     if (flowKey->l2.dlType == htons(ETH_TYPE_IPV4)) {
         if (flowKey && (flowKey->ipKey.nwProto == IPPROTO_TCP)) {
-           int c2s = 0;
-           c2s = OvsIsTcpC2S(curNbl, layers);
-           if (c2s) {
-              key_ct_not_null = ovs_check_flow_key_ct_not_null(&(ctx->key), flowKey, curNbl);
-           }
-        } 
+           key_ct_not_null = ovs_check_flow_key_ct_not_null(&(ctx->key), flowKey, curNbl);
+        }
         if (!key_ct_not_null) {
            ctx->key.src.addr.ipv4 = flowKey->ipKey.nwSrc;
            ctx->key.dst.addr.ipv4 = flowKey->ipKey.nwDst;
@@ -2234,7 +2230,7 @@ int ovs_check_flow_key_ct_not_null(POVS_CT_KEY ctKey, OvsFlowKey *flowKey, PNET_
     if (flowKey->l2.dlType == htons(ETH_TYPE_IPV4)) {
         ipAddr_src = flowKey->ct.tuple_ipv4.ipv4_src;
         ipAddr_dst = flowKey->ct.tuple_ipv4.ipv4_dst;
-      
+
         if (ipAddr_src > 0 && ipAddr_dst > 0) {
            ctKey->src.addr.ipv4 = flowKey->ct.tuple_ipv4.ipv4_src;
            ctKey->dst.addr.ipv4 = flowKey->ct.tuple_ipv4.ipv4_dst;
@@ -2259,4 +2255,3 @@ int ovs_check_flow_key_ct_not_null(POVS_CT_KEY ctKey, OvsFlowKey *flowKey, PNET_
    return ct_not_null;
 }
 #pragma warning(pop)
-
