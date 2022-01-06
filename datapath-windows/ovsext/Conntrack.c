@@ -675,12 +675,12 @@ OvsCtSetupLookupCtx(OvsFlowKey *flowKey,
                     UINT16 zone,
                     OvsConntrackKeyLookupCtx *ctx,
                     PNET_BUFFER_LIST curNbl,
-                    UINT32 l4Offset)
-                    //OVS_PACKET_HDR_INFO *layers)
+                    UINT32 l4Offset,
+                    OVS_PACKET_HDR_INFO *layers)
 {
     const OVS_NAT_ENTRY *natEntry;
     int key_ct_not_null = 0;
-    //OVS_CT_KEY revCtxKey = {0};
+    OVS_CT_KEY revCtxKey = {0};
 
     ctx->key.zone = zone;
     ctx->key.dl_type = flowKey->l2.dlType;
@@ -690,7 +690,9 @@ OvsCtSetupLookupCtx(OvsFlowKey *flowKey,
     /* Extract L3 and L4*/
     if (flowKey->l2.dlType == htons(ETH_TYPE_IPV4)) {
         if (flowKey && (flowKey->ipKey.nwProto == IPPROTO_TCP)) {
-           key_ct_not_null = ovs_check_flow_key_ct_not_null(&(ctx->key), flowKey, curNbl);
+           key_ct_not_null = 0;
+           ovs_dump_flow_key_ct(flowKey, curNbl);
+           //ovs_check_flow_key_ct_not_null(&(ctx->key), flowKey, curNbl);
         }
         if (!key_ct_not_null) {
            ctx->key.src.addr.ipv4 = flowKey->ipKey.nwSrc;
@@ -757,7 +759,7 @@ OvsCtSetupLookupCtx(OvsFlowKey *flowKey,
         OVS_LOG_INFO("found nat entry %p",
                      natEntry);
     } else {
-        #if 0
+        #if 1
         OVS_LOG_INFO("not found related nat entry");
         /*if c2s direction TCP not found search again*/
         if (flowKey && (flowKey->ipKey.nwProto == IPPROTO_TCP)) {
@@ -1017,12 +1019,10 @@ OvsCtExecute_(OvsForwardingContext *fwdCtx,
     NdisGetCurrentSystemTime((LARGE_INTEGER *) &currentTime);
 
     /* Retrieve the Conntrack Key related fields from packet */
-    OvsCtSetupLookupCtx(key, zone, &ctx, curNbl, layers->l4Offset);
-//, layers);
+    OvsCtSetupLookupCtx(key, zone, &ctx, curNbl, layers->l4Offset, layers);
 
     /* Lookup Conntrack entries for a matching entry */
     entry = OvsCtLookup(&ctx);
-
 
     /* Delete entry in reverse direction if 'force' is specified */
     if (force && ctx.reply && entry) {
@@ -1036,7 +1036,7 @@ OvsCtExecute_(OvsForwardingContext *fwdCtx,
     }
 
     //restore the ctx key to flow key
-
+    #if 0
     if (key->l2.dlType == htons(ETH_TYPE_IPV4)) {
         if (key && (key->ipKey.nwProto == IPPROTO_TCP)) {
            ctx.key.src.addr.ipv4 = key->ipKey.nwSrc;
@@ -1047,6 +1047,7 @@ OvsCtExecute_(OvsForwardingContext *fwdCtx,
            ctx.key.dst.port = key->ipKey.l4.tpDst;
        }
     }
+    #endif
     if (entry) {
         /* Increment stats for the entry if it wasn't tracked previously or
          * if they are on different zones
