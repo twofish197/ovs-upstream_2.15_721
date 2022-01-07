@@ -1517,7 +1517,8 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
     UINT16 *checkField = NULL;
     BOOLEAN l4Offload = FALSE;
     NDIS_TCP_IP_CHECKSUM_NET_BUFFER_LIST_INFO csumInfo;
-    UINT16 old_port = 0;
+    uint16 old_port = 0;
+    uint16 portSrc = 0, portDst = 0;
 
 
     ASSERT(layers->value != 0);
@@ -1601,19 +1602,23 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
     old_port = *portField;
 
     if (ipHdr) {
-           OVS_LOG_INFO("before update address ,nbl %p", ovsFwdCtx->curNbl);
-           UINT32 ipAddr = 0;
-           ipAddr = ipHdr->saddr;
-           OVS_LOG_INFO("Source: %d.%d.%d.%d:%u, nbl %p",
-                        ipAddr & 0xff, (ipAddr >> 8) & 0xff,
-                        (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff,
-                        ntohs(old_port), ovsFwdCtx->curNbl);
-
-           ipAddr = ipHdr->daddr;
-           OVS_LOG_INFO("Destination: %d.%d.%d.%d:%u, nbl %p",
-                         ipAddr & 0xff, (ipAddr >> 8) & 0xff,
-                         (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff,
-                         ntohs(newPort), ovsFwdCtx->curNbl);
+           UINT32 ipAddrSrc = 0, ipAddrDst = 0;
+           if (tcpHdr) {
+               portSrc = &tcpHdr->source;
+               portDst = &tcpHdr->dest;
+           } else if (udpHdr) {
+               portSrc = &udpHdr->source;
+               portDst = &udpHdr->dest;
+           }
+           ipAddrSrc = ipHdr->saddr;
+           ipAddrDst = ipHdr->daddr;
+           OVS_LOG_INFO("Before nat, src: %d.%d.%d.%d:%u, dst: %d.%d.%d.%d:%u, nbl %p",
+                        ipAddrSrc & 0xff, (ipAddrSrc >> 8) & 0xff,
+                        (ipAddrSrc >> 16) & 0xff, (ipAddrSrc >> 24) & 0xff,
+                        ntohs(portSrc), 
+                        ipAddrDst & 0xff, (ipAddrDst >> 8) & 0xff,
+                        (ipAddrDst >> 16) & 0xff, (ipAddrDst >> 24) & 0xff,
+                        ntohs(portDst), ovsFwdCtx->curNbl);
 
            OVS_LOG_INFO("ipid %u hex:0x%x, Proto %u, tos %u, nbl %p", ntohs(ipHdr->id),
                          ntohs(ipHdr->id), ipHdr->protocol, ipHdr->tos,
@@ -1658,19 +1663,24 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
 
 
     if (ipHdr) {
-           UINT32 ipAddr = 0;
-           ipAddr = ipHdr->saddr;
-           OVS_LOG_INFO("after update address, nbl %p", ovsFwdCtx->curNbl);
-           OVS_LOG_INFO("Source: %d.%d.%d.%d:%u, nbl %p",
-                        ipAddr & 0xff, (ipAddr >> 8) & 0xff,
-                        (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff,
-                        ntohs(old_port), ovsFwdCtx->curNbl);
+           UINT32 ipAddrSrc = 0, ipAddrDst = 0;
+           ipAddrSrc = ipHdr->saddr;
+           ipAddrDst = ipHdr->daddr;
+           if (tcpHdr) {
+               portSrc = &tcpHdr->source;
+               portDst = &tcpHdr->dest;
+           } else if (udpHdr) {
+               portSrc = &udpHdr->source;
+               portDst = &udpHdr->dest;
+           }
 
-           ipAddr = ipHdr->daddr;
-           OVS_LOG_INFO("Destination: %d.%d.%d.%d:%u, nbl %p",
-                         ipAddr & 0xff, (ipAddr >> 8) & 0xff,
-                         (ipAddr >> 16) & 0xff, (ipAddr >> 24) & 0xff,
-                         ntohs(newPort), ovsFwdCtx->curNbl);
+           OVS_LOG_INFO("After nat, src: %d.%d.%d.%d:%u, dst: %d.%d.%d.%d:%u, nbl %p",
+                        ipAddrSrc & 0xff, (ipAddrSrc >> 8) & 0xff,
+                        (ipAddrSrc >> 16) & 0xff, (ipAddrSrc >> 24) & 0xff,
+                        ntohs(portSrc), 
+                        ipAddrDst & 0xff, (ipAddrDst >> 8) & 0xff,
+                        (ipAddrDst >> 16) & 0xff, (ipAddrDst >> 24) & 0xff,
+                        ntohs(portDst), ovsFwdCtx->curNbl);
 
            OVS_LOG_INFO("ipid %u hex:0x%x, Proto %u, tos %u, nbl %p", ntohs(ipHdr->id),
                          ntohs(ipHdr->id), ipHdr->protocol, ipHdr->tos,

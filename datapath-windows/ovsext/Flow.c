@@ -2831,11 +2831,12 @@ int ovs_dump_flow_key_ct(OvsFlowKey *flowKey, PNET_BUFFER_LIST curNbl)
         port_src = ntohs(flowKey->ct.tuple_ipv4.src_port);
         port_dst = ntohs(flowKey->ct.tuple_ipv4.dst_port);
 
-        OVS_LOG_INFO("flow key.ct src: %d.%d.%d.%d:%u, dst: %d.%d.%d.%d:%u, nw_pro %d, nbl %p",
+        OVS_LOG_INFO("flow key.ct src: %d.%d.%d.%d:%u, dst: %d.%d.%d.%d:%u, zone %u, mark %u, nw_pro %d, nbl %p",
                     ipAddr_src & 0xff, (ipAddr_src >> 8) & 0xff,
                     (ipAddr_src >> 16) & 0xff, (ipAddr_src >> 24) & 0xff, port_src,
                     ipAddr_dst & 0xff, (ipAddr_dst >> 8) & 0xff,
                     (ipAddr_dst >> 16) & 0xff, (ipAddr_dst >> 24) & 0xff, port_dst,
+                    flowKey->ct.zone, flowKey->ct.mark,
                     flowKey->ct.tuple_ipv4.ipv4_proto, curNbl);
    }
    return 0;

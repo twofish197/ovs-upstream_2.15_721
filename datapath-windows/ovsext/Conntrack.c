@@ -676,11 +676,11 @@ OvsCtSetupLookupCtx(OvsFlowKey *flowKey,
                     OvsConntrackKeyLookupCtx *ctx,
                     PNET_BUFFER_LIST curNbl,
                     UINT32 l4Offset,
+                    PNAT_ACTION_INFO natInfo,
                     OVS_PACKET_HDR_INFO *layers)
 {
     const OVS_NAT_ENTRY *natEntry;
-    int key_ct_not_null = 0;
-    OVS_CT_KEY revCtxKey = {0};
+    int nat_info_null = 1;
 
     ctx->key.zone = zone;
     ctx->key.dl_type = flowKey->l2.dlType;
@@ -690,17 +690,8 @@ OvsCtSetupLookupCtx(OvsFlowKey *flowKey,
     /* Extract L3 and L4*/
     if (flowKey->l2.dlType == htons(ETH_TYPE_IPV4)) {
         if (flowKey && (flowKey->ipKey.nwProto == IPPROTO_TCP)) {
-           key_ct_not_null = 0;
-           ovs_dump_flow_key_ct(flowKey, curNbl);
+           //ovs_dump_flow_key_ct(flowKey, curNbl);
            //ovs_check_flow_key_ct_not_null(&(ctx->key), flowKey, curNbl);
-        }
-        if (!key_ct_not_null) {
-           ctx->key.src.addr.ipv4 = flowKey->ipKey.nwSrc;
-           ctx->key.dst.addr.ipv4 = flowKey->ipKey.nwDst;
-           ctx->key.nw_proto = flowKey->ipKey.nwProto;
-
-           ctx->key.src.port = flowKey->ipKey.l4.tpSrc;
-           ctx->key.dst.port = flowKey->ipKey.l4.tpDst;
         }
         if (flowKey->ipKey.nwProto == IPPROTO_ICMP) {
             ICMPHdr icmpStorage;
@@ -756,16 +747,23 @@ OvsCtSetupLookupCtx(OvsFlowKey *flowKey,
         /* Translate address first for reverse NAT */
         ctx->key = natEntry->ctEntry->key;
         OvsCtKeyReverse(&ctx->key);
-        OVS_LOG_INFO("found nat entry %p",
-                     natEntry);
+        OVS_LOG_INFO("found nat entry %p, nbl %p",
+                     natEntry, curNbl);
     } else {
         #if 1
-        OVS_LOG_INFO("not found related nat entry");
+        if (natInfo->natAction != NAT_ACTION_NONE) {
+            nat_info_null = 0;
+        }
+        OVS_LOG_INFO("not found related nat entry nat_info_null %d nbl:%p", nat_info_null,
+                     curNbl);
         /*if c2s direction TCP not found search again*/
         if (flowKey && (flowKey->ipKey.nwProto == IPPROTO_TCP)) {
            int c2s = 0;
            c2s = OvsIsTcpC2S(curNbl, layers);
            if (c2s) {
+              ovs_check_flow_key_ct_not_null(&(ctx->key), zone, flowKey, curNbl);
+              #if 0
+              OVS_CT_KEY revCtxKey = {0};
               revCtxKey = ctx->key;
               OvsCtKeyReverse(&revCtxKey);
               natEntry = OvsNatLookup(&revCtxKey, TRUE);
@@ -773,12 +771,13 @@ OvsCtSetupLookupCtx(OvsFlowKey *flowKey,
               if (natEntry) {
                   /* Translate address first for reverse NAT */
                   ctx->key = natEntry->ctEntry->key;
-                  OVS_LOG_INFO("rev key found nat entry %p",
-                              natEntry);
+                  OVS_LOG_INFO("rev key found nat entry %p, nbl:%p",
+                              natEntry, curNbl);
                   ovs_dump_nat_entry_key(natEntry);
                } else {
-                  OVS_LOG_INFO("still not found related nat entry");
+                  OVS_LOG_INFO("still not found related nat entry, nbl:%p", curNbl);
                }
+              #endif
            }
         }
        #endif
@@ -1019,7 +1018,7 @@ OvsCtExecute_(OvsForwardingContext *fwdCtx,
     NdisGetCurrentSystemTime((LARGE_INTEGER *) &currentTime);
 
     /* Retrieve the Conntrack Key related fields from packet */
-    OvsCtSetupLookupCtx(key, zone, &ctx, curNbl, layers->l4Offset, layers);
+    OvsCtSetupLookupCtx(key, zone, &ctx, curNbl, layers->l4Offset, natInfo, layers);
 
     /* Lookup Conntrack entries for a matching entry */
     entry = OvsCtLookup(&ctx);
@@ -1035,19 +1034,6 @@ OvsCtExecute_(OvsForwardingContext *fwdCtx,
         entry = NULL;
     }
 
-    //restore the ctx key to flow key
-    #if 0
-    if (key->l2.dlType == htons(ETH_TYPE_IPV4)) {
-        if (key && (key->ipKey.nwProto == IPPROTO_TCP)) {
-           ctx.key.src.addr.ipv4 = key->ipKey.nwSrc;
-           ctx.key.dst.addr.ipv4 = key->ipKey.nwDst;
-           ctx.key.nw_proto = key->ipKey.nwProto;
-
-           ctx.key.src.port = key->ipKey.l4.tpSrc;
-           ctx.key.dst.port = key->ipKey.l4.tpDst;
-       }
-    }
-    #endif
     if (entry) {
         /* Increment stats for the entry if it wasn't tracked previously or
          * if they are on different zones
@@ -2233,7 +2219,7 @@ OvsIsTcpC2S(PNET_BUFFER_LIST curNbl, OVS_PACKET_HDR_INFO *layers)
     return OvsCheckTcpC2S(tcp_flags);
 }
 
-int ovs_check_flow_key_ct_not_null(POVS_CT_KEY ctKey, OvsFlowKey *flowKey, PNET_BUFFER_LIST curNbl)
+int ovs_check_flow_key_ct_not_null(POVS_CT_KEY ctKey, UINT16 zone, OvsFlowKey *flowKey, PNET_BUFFER_LIST curNbl)
 {
     UINT32 ipAddr_src = 0, ipAddr_dst = 0;
     uint16_t port_src = 0, port_dst = 0;
@@ -2241,12 +2227,12 @@ int ovs_check_flow_key_ct_not_null(POVS_CT_KEY ctKey, OvsFlowKey *flowKey, PNET_
 
     if (!flowKey || !ctKey) return 0;
 
-    /* Extract L3 and L4*/
     if (flowKey->l2.dlType == htons(ETH_TYPE_IPV4)) {
         ipAddr_src = flowKey->ct.tuple_ipv4.ipv4_src;
         ipAddr_dst = flowKey->ct.tuple_ipv4.ipv4_dst;
 
-        if (ipAddr_src > 0 && ipAddr_dst > 0) {
+        if ((ipAddr_src > 0 && ipAddr_dst > 0) &&
+            (zone == flowKey->ct.zone)) {
            ctKey->src.addr.ipv4 = flowKey->ct.tuple_ipv4.ipv4_src;
            ctKey->dst.addr.ipv4 = flowKey->ct.tuple_ipv4.ipv4_dst;
            ctKey->nw_proto = flowKey->ct.tuple_ipv4.ipv4_proto;
@@ -2257,14 +2243,23 @@ int ovs_check_flow_key_ct_not_null(POVS_CT_KEY ctKey, OvsFlowKey *flowKey, PNET_
            port_src = ntohs(flowKey->ct.tuple_ipv4.src_port);
            port_dst = ntohs(flowKey->ct.tuple_ipv4.dst_port);
 
-           OVS_LOG_INFO("flow key.ct src: %d.%d.%d.%d:%u, dst: %d.%d.%d.%d:%u, nw_pro %d, nbl %p",
+           OVS_LOG_INFO("flow key.ct src: %d.%d.%d.%d:%u, dst: %d.%d.%d.%d:%u, zone %u, makr %u, nw_pro %d, nbl %p",
                         ipAddr_src & 0xff, (ipAddr_src >> 8) & 0xff,
                         (ipAddr_src >> 16) & 0xff, (ipAddr_src >> 24) & 0xff, port_src,
                         ipAddr_dst & 0xff, (ipAddr_dst >> 8) & 0xff,
                         (ipAddr_dst >> 16) & 0xff, (ipAddr_dst >> 24) & 0xff, port_dst,
+                        flowKey->ct.zone, flowKye->ct.mark,
                         flowKey->ct.tuple_ipv4.ipv4_proto, curNbl);
         } else {
+           OVS_LOG_INFO("input zone %u, key.ct zone %u, nbl %p",
+                        zone, flowKey->ct.zone, curNbl); 
            ct_not_null = 0;
+           ctx->key.src.addr.ipv4 = flowKey->ipKey.nwSrc;
+           ctx->key.dst.addr.ipv4 = flowKey->ipKey.nwDst;
+           ctx->key.nw_proto = flowKey->ipKey.nwProto;
+
+           ctx->key.src.port = flowKey->ipKey.l4.tpSrc;
+           ctx->key.dst.port = flowKey->ipKey.l4.tpDst;
         }
    }
    return ct_not_null;
