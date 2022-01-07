@@ -689,10 +689,6 @@ OvsCtSetupLookupCtx(OvsFlowKey *flowKey,
 
     /* Extract L3 and L4*/
     if (flowKey->l2.dlType == htons(ETH_TYPE_IPV4)) {
-        if (flowKey && (flowKey->ipKey.nwProto == IPPROTO_TCP)) {
-           //ovs_dump_flow_key_ct(flowKey, curNbl);
-           //ovs_check_flow_key_ct_not_null(&(ctx->key), flowKey, curNbl);
-        }
         ctx->key.src.addr.ipv4 = flowKey->ipKey.nwSrc;
         ctx->key.dst.addr.ipv4 = flowKey->ipKey.nwDst;
         ctx->key.nw_proto = flowKey->ipKey.nwProto;
@@ -764,9 +760,9 @@ OvsCtSetupLookupCtx(OvsFlowKey *flowKey,
         OVS_LOG_INFO("not found related nat entry nat_info_null %d nbl:%p", nat_info_null,
                      curNbl);
         /*if c2s direction TCP not found search again*/
-        if (flowKey && (flowKey->ipKey.nwProto == IPPROTO_TCP)) {
-           int c2s = 0;
-           c2s = OvsIsTcpC2S(curNbl, layers);
+        if (flowKey->l2.dlType == htons(ETH_TYPE_IPV4)) {
+           int c2s = 1;
+           //c2s = OvsIsTcpC2S(curNbl, layers);
            if (c2s) {
               ovs_check_flow_key_ct_not_null(&(ctx->key), zone, flowKey, curNbl);
               #if 0
