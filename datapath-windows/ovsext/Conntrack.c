@@ -676,8 +676,8 @@ OvsCtSetupLookupCtx(OvsFlowKey *flowKey,
                     OvsConntrackKeyLookupCtx *ctx,
                     PNET_BUFFER_LIST curNbl,
                     UINT32 l4Offset,
-                    PNAT_ACTION_INFO natInfo,
-                    OVS_PACKET_HDR_INFO *layers)
+                    PNAT_ACTION_INFO natInfo)
+                    //OVS_PACKET_HDR_INFO *layers)
 {
     const OVS_NAT_ENTRY *natEntry;
     int nat_info_null = 1;
@@ -1021,7 +1021,8 @@ OvsCtExecute_(OvsForwardingContext *fwdCtx,
     NdisGetCurrentSystemTime((LARGE_INTEGER *) &currentTime);
 
     /* Retrieve the Conntrack Key related fields from packet */
-    OvsCtSetupLookupCtx(key, zone, &ctx, curNbl, layers->l4Offset, natInfo, layers);
+    OvsCtSetupLookupCtx(key, zone, &ctx, curNbl, layers->l4Offset, natInfo);
+    //, layers);
 
     /* Lookup Conntrack entries for a matching entry */
     entry = OvsCtLookup(&ctx);
@@ -2257,12 +2258,6 @@ int ovs_check_flow_key_ct_not_null(POVS_CT_KEY ctKey, UINT16 zone, OvsFlowKey *f
            OVS_LOG_INFO("input zone %u, key.ct zone %u, nbl %p",
                         zone, flowKey->ct.zone, curNbl); 
            ct_not_null = 0;
-           ctKey->src.addr.ipv4 = flowKey->ipKey.nwSrc;
-           ctKey->dst.addr.ipv4 = flowKey->ipKey.nwDst;
-           ctKey->nw_proto = flowKey->ipKey.nwProto;
-
-           ctKey->src.port = flowKey->ipKey.l4.tpSrc;
-           ctKey->dst.port = flowKey->ipKey.l4.tpDst;
         }
    }
    return ct_not_null;
