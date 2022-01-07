@@ -2248,7 +2248,7 @@ int ovs_check_flow_key_ct_not_null(POVS_CT_KEY ctKey, UINT16 zone, OvsFlowKey *f
                         (ipAddr_src >> 16) & 0xff, (ipAddr_src >> 24) & 0xff, port_src,
                         ipAddr_dst & 0xff, (ipAddr_dst >> 8) & 0xff,
                         (ipAddr_dst >> 16) & 0xff, (ipAddr_dst >> 24) & 0xff, port_dst,
-                        flowKey->ct.zone, flowKye->ct.mark,
+                        flowKey->ct.zone, flowKey->ct.mark,
                         flowKey->ct.tuple_ipv4.ipv4_proto, curNbl);
         } else {
            OVS_LOG_INFO("input zone %u, key.ct zone %u, nbl %p",

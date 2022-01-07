@@ -1604,11 +1604,11 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
     if (ipHdr) {
            UINT32 ipAddrSrc = 0, ipAddrDst = 0;
            if (tcpHdr) {
-               portSrc = &tcpHdr->source;
-               portDst = &tcpHdr->dest;
+               portSrc = tcpHdr->source;
+               portDst = tcpHdr->dest;
            } else if (udpHdr) {
-               portSrc = &udpHdr->source;
-               portDst = &udpHdr->dest;
+               portSrc = udpHdr->source;
+               portDst = udpHdr->dest;
            }
            ipAddrSrc = ipHdr->saddr;
            ipAddrDst = ipHdr->daddr;
@@ -1667,11 +1667,11 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
            ipAddrSrc = ipHdr->saddr;
            ipAddrDst = ipHdr->daddr;
            if (tcpHdr) {
-               portSrc = &tcpHdr->source;
-               portDst = &tcpHdr->dest;
+               portSrc = tcpHdr->source;
+               portDst = tcpHdr->dest;
            } else if (udpHdr) {
-               portSrc = &udpHdr->source;
-               portDst = &udpHdr->dest;
+               portSrc = udpHdr->source;
+               portDst = udpHdr->dest;
            }
 
            OVS_LOG_INFO("After nat, src: %d.%d.%d.%d:%u, dst: %d.%d.%d.%d:%u, nbl %p",
