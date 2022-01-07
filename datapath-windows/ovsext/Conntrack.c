@@ -693,6 +693,13 @@ OvsCtSetupLookupCtx(OvsFlowKey *flowKey,
            //ovs_dump_flow_key_ct(flowKey, curNbl);
            //ovs_check_flow_key_ct_not_null(&(ctx->key), flowKey, curNbl);
         }
+        ctx->key.src.addr.ipv4 = flowKey->ipKey.nwSrc;
+        ctx->key.dst.addr.ipv4 = flowKey->ipKey.nwDst;
+        ctx->key.nw_proto = flowKey->ipKey.nwProto;
+
+        ctx->key.src.port = flowKey->ipKey.l4.tpSrc;
+        ctx->key.dst.port = flowKey->ipKey.l4.tpDst;
+
         if (flowKey->ipKey.nwProto == IPPROTO_ICMP) {
             ICMPHdr icmpStorage;
             const ICMPHdr *icmp;
