@@ -1517,8 +1517,8 @@ OvsUpdateAddressAndPort(OvsForwardingContext *ovsFwdCtx,
     UINT16 *checkField = NULL;
     BOOLEAN l4Offload = FALSE;
     NDIS_TCP_IP_CHECKSUM_NET_BUFFER_LIST_INFO csumInfo;
-    uint16 old_port = 0;
-    uint16 portSrc = 0, portDst = 0;
+    UINT16 old_port = 0;
+    UINT16 portSrc = 0, portDst = 0;
 
 
     ASSERT(layers->value != 0);

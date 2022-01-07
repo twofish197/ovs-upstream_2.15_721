@@ -2142,7 +2142,7 @@ OvsCtLimitHandler(POVS_USER_PARAMS_CONTEXT usrParamsCtx,
 int ovs_dump_nat_entry_key(const OVS_NAT_ENTRY *entry)
 {
     UINT32 ipAddr_src = 0, ipAddr_dst = 0;
-    uint16_t port_src = 0, port_dst = 0;
+    UINT16 port_src = 0, port_dst = 0;
 
     if (!entry ) return 0;
 
@@ -2222,7 +2222,7 @@ OvsIsTcpC2S(PNET_BUFFER_LIST curNbl, OVS_PACKET_HDR_INFO *layers)
 int ovs_check_flow_key_ct_not_null(POVS_CT_KEY ctKey, UINT16 zone, OvsFlowKey *flowKey, PNET_BUFFER_LIST curNbl)
 {
     UINT32 ipAddr_src = 0, ipAddr_dst = 0;
-    uint16_t port_src = 0, port_dst = 0;
+    UINT16 port_src = 0, port_dst = 0;
     int ct_not_null = 0;
 
     if (!flowKey || !ctKey) return 0;
@@ -2254,12 +2254,12 @@ int ovs_check_flow_key_ct_not_null(POVS_CT_KEY ctKey, UINT16 zone, OvsFlowKey *f
            OVS_LOG_INFO("input zone %u, key.ct zone %u, nbl %p",
                         zone, flowKey->ct.zone, curNbl); 
            ct_not_null = 0;
-           ctx->key.src.addr.ipv4 = flowKey->ipKey.nwSrc;
-           ctx->key.dst.addr.ipv4 = flowKey->ipKey.nwDst;
-           ctx->key.nw_proto = flowKey->ipKey.nwProto;
+           ctKey->src.addr.ipv4 = flowKey->ipKey.nwSrc;
+           ctKey->dst.addr.ipv4 = flowKey->ipKey.nwDst;
+           ctKey->nw_proto = flowKey->ipKey.nwProto;
 
-           ctx->key.src.port = flowKey->ipKey.l4.tpSrc;
-           ctx->key.dst.port = flowKey->ipKey.l4.tpDst;
+           ctKey->src.port = flowKey->ipKey.l4.tpSrc;
+           ctKey->dst.port = flowKey->ipKey.l4.tpDst;
         }
    }
    return ct_not_null;
